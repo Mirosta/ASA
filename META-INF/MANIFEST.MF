@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: ../libs/jogamp-all-platforms/jar/gluegen-rt.jar ../libs/jo
+ gamp-all-platforms/jar/jogl-all.jar ../libs/scala-library.jar ../libs
+ /scala-swing-2.11-1.01.jar ../libs/scala-actors-2.11.0.jar
+Main-Class: com.ASA.Launcher
+
