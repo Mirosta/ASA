@@ -45,6 +45,19 @@ public class Matrix4
         return values;
     }
 
+    public float[] flattenMatrixValuesAsFloats()
+    {
+        float[] values = new float[16];
+        double[] dblValues = flattenMatrixValues();
+
+        for(int i = 0; i < 16; i++)
+        {
+            values[i] = (float)dblValues[i];
+        }
+
+        return values;
+    }
+
     public static Matrix4 getIdentityMatrix()
     {
         return new Matrix4(new double[][]
@@ -182,12 +195,50 @@ public class Matrix4
     public static Matrix4 getFromOpenGl(double[] values)
     {
         double[][] matrixValues = new double[4][4];
-        for(int i =0; i < 16; i++)
+        for (int i = 0; i < 16; i++)
         {
-            int x = (int)Math.floor((double)i / 4.0);
+            int x = (int) Math.floor((double) i / 4.0);
             int y = i % 4;
             matrixValues[y][x] = values[i];
         }
         return new Matrix4(matrixValues);
+    }
+
+    //Adapted from
+    //http://stackoverflow.com/questions/18404890/how-to-build-perspective-projection-matrix-no-api
+    public static Matrix4 getPerspectiveMatrix(double fieldOfView, double aspectRatio, double nearZ, double farZ)
+    {
+
+        //
+        // General form of the Projection Matrix
+        //
+        // uh = Cot( fov/2 ) == 1/Tan(fov/2)
+        // uw / uh = 1/aspect
+        //
+        //   uw         0       0       0
+        //    0        uh       0       0
+        //    0         0      f/(f-n)  1
+        //    0         0    -fn/(f-n)  0
+        //
+        // Make result to be identity first
+
+        // check for bad parameters to avoid divide by zero:
+        // if found, assert and return an identity matrix.
+
+        if(fieldOfView < 0) throw new IllegalArgumentException("Field of view must be greater than 0");
+        if(aspectRatio == 0) throw new IllegalArgumentException("Aspect ratio cannot be 0");
+
+        double frustumDepth = farZ - nearZ;
+        double oneOverDepth = 1.0 / frustumDepth;
+        double uh = 1.0 / Math.tan(fieldOfView * (Math.PI / 360.0));
+        double uw = uh/aspectRatio;
+
+        return new Matrix4(new double[][]
+                {
+                        {uw, 0, 0, 0},
+                        {0, uh, 0, 0},
+                        {0, 0, farZ * oneOverDepth, 1},
+                        {0, 0, (-farZ * nearZ) * oneOverDepth, 0}
+                });
     }
 }

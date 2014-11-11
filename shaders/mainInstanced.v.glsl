@@ -7,12 +7,13 @@ uniform mat4 modelView;
 
 layout(location=0) in vec4 inVertex;
 layout(location=1) in vec4 inColour;
+layout(location=2) in vec3 inPosition;
 
 out vec4 vertexColour;
 //Vertex shader
 void main()
 {
-	gl_Position = /*projection * modelView */ inVertex;
+	gl_Position = projection * modelView * (inVertex.xyz + inPosition.xyz, inVertex.w);
 	float total = 0;
 
 	for(int i =0; i < 4; i++)
@@ -24,5 +25,5 @@ void main()
 	}
 
 	//if(total == 0) vertexColour = vec4(1,0,0,1);
-	vertexColour = vec4(1,0,0,1);//inColour;//projection[1] * vec4(1,1,1,0) + vec4(0,0,0,1);//vec4(1,0,0,1);
+	vertexColour = inColour;//projection[1] * vec4(1,1,1,0) + vec4(0,0,0,1);//vec4(1,0,0,1);
 }

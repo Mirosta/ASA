@@ -25,14 +25,14 @@ class DrawPanelEventHandler(val simulationController: SimulationController) exte
     override def init(event: GLAutoDrawable): Unit =
     {
 
-        def gl2 = event.getGL.getGL2
+        val gl3 = event.getGL.getGL3
         val shaderLoader: ShaderLoader = new ShaderLoader("shaders/main")
-        this.drawTools = new DrawTools(gl2, new GLU(), new GLUT(), shaderLoader, shaderLoader)
-        drawTools.setupPerspectiveProjection(event.getWidth, event.getHeight)
-        drawTools.setupModelView(Matrix4.getIdentityMatrix)
 
-        gl2.glEnable(GL.GL_DEPTH_TEST)
-        gl2.glDepthFunc(GL.GL_LESS)
+        this.drawTools = new DrawTools(gl3, new GLU(), new GLUT(), shaderLoader, shaderLoader)
+        drawTools.setupPerspectiveProjection(event.getWidth, event.getHeight)
+        //drawTools.setupModelView(Matrix4.getIdentityMatrix)
+        gl3.glEnable(GL.GL_DEPTH_TEST)
+        gl3.glDepthFunc(GL.GL_LESS)
     }
 
     override def display(p1: GLAutoDrawable): Unit =

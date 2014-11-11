@@ -13,8 +13,8 @@ object RenderMain
         drawTools.clear(Colour.White)
         drawTools.start()
         //println("Rendering Main")
-        drawTools.setModelView(camera.getMatrix(1.0))
-        //drawTools.drawCuboid(new Vector3(15,-10,-0.05), new Vector3(0.5,1.5,0.1), Array(Colour.Green))
+        drawTools.setModelView(Matrix4.getIdentityMatrix)
+        drawTools.drawCuboid(new Vector3(0,0,-10), new Vector3(10.0,10.0,10.0), Array(Colour.Green))
 
     }
 

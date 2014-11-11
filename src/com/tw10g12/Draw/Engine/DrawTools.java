@@ -2,9 +2,12 @@ package com.tw10g12.Draw.Engine;
 
 import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
 import com.tw10g12.Maths.Matrix4;
-import java.nio.IntBuffer;
 
-import javax.media.opengl.GL2;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.media.opengl.GL3;
+import javax.media.opengl.GL3;
 import javax.media.opengl.glu.GLU;
 
 import com.jogamp.opengl.util.gl2.GLUT;
@@ -16,9 +19,9 @@ import com.tw10g12.Maths.Vector4;
 @SuppressWarnings(value = { "unused" })
 public class DrawTools
 {
-    public static final int NORMAL = 1;
-    public static final int NO_LIGHTING = 2;
-    private GL2 gl2;
+    public static final int NORMAL = 0;
+    public static final int NO_LIGHTING = 1;
+    private GL3 gl3;
     private GLU glu;
     GLUT glut;
     private Tessellator tessellator;
@@ -32,14 +35,17 @@ public class DrawTools
     private int shaderMode;
     private Vector3[] lightPos = new Vector3[]{new Vector3(1,-1,0)};
     private int[] viewport = new int[4];
-    private double[] projection = new double[16];
+    private Matrix4 projection = Matrix4.getIdentityMatrix();
 
-    public DrawTools(GL2 glInstance, GLU glu, GLUT glut, ShaderLoader shaders, ShaderLoader noLightingShader)
+    public DrawTools(GL3 glInstance, GLU glu, GLUT glut, ShaderLoader shaders, ShaderLoader noLightingShader)
     {
-        this.gl2 = glInstance;
+        this.gl3 = glInstance;
         this.glu = glu;
         this.glut = glut;
-        tessellator = new Tessellator(glInstance, shaders, noLightingShader);
+        List<ShaderLoader> shaderLoaders = new ArrayList<ShaderLoader>();
+        shaderLoaders.add(shaders);
+        shaderLoaders.add(noLightingShader);
+        tessellator = new Tessellator(glInstance, shaderLoaders);
     }
 
     public void clear(Colour clearColour)
@@ -49,43 +55,48 @@ public class DrawTools
 
     public void clear(Colour clearColour, boolean colorBuffer, boolean depthBuffer)
     {
-        int clearBits = (colorBuffer ? GL2.GL_COLOR_BUFFER_BIT : 0) | (depthBuffer ? GL2.GL_DEPTH_BUFFER_BIT : 0);
-        gl2.glClearColor(clearColour.r, clearColour.g, clearColour.b, clearColour.a);
-        gl2.glClear(clearBits);
+        int clearBits = (colorBuffer ? GL3.GL_COLOR_BUFFER_BIT : 0) | (depthBuffer ? GL3.GL_DEPTH_BUFFER_BIT : 0);
+        gl3.glClearColor(clearColour.r, clearColour.g, clearColour.b, clearColour.a);
+        gl3.glClear(clearBits);
     }
 
     public void setupOrthographicProjection(double left, double right, double bottom, double top, double near, double far)
     {
-        gl2.glMatrixMode(GL2.GL_PROJECTION);
-        gl2.glLoadIdentity();
-        gl2.glOrtho(left, right, bottom, top, near, far);
+        //gl3.glMatrixMode(GL3.GL_PROJECTION);
+        //gl3.glLoadIdentity();
+        //gl3.glOrtho(left, right, bottom, top, near, far);
     }
 
     public void setupPerspectiveProjection(float screenWidth, float screenHeight)
     {
-        gl2.glMatrixMode(GL2.GL_PROJECTION);
-        gl2.glLoadIdentity();
-        glu.gluPerspective(fieldOfView, screenWidth/screenHeight, nearZ, farZ);
         viewport = new int[]{0,0,(int)screenWidth, (int)screenHeight};
-        projection = getProjectionMatrix().flattenMatrixValues();
+        projection = Matrix4.getPerspectiveMatrix(fieldOfView, screenWidth/screenHeight, nearZ, farZ);
     }
 
     public void setupModelView(Matrix4 matrix)
     {
-        gl2.glMatrixMode(GL2.GL_MODELVIEW);
-        gl2.glLoadIdentity();
+        ShaderLoader currentShader = tessellator.getCurrentShader();
+        currentShader.setUniformVariable(gl3, matrix, currentShader.getModelViewName());
+        /*gl3.glMatrixMode(GL3.GL_MODELVIEW);
+        gl3.glLoadIdentity();
 
-        gl2.glMultMatrixd(matrix.flattenMatrixValues(), 0);
+        gl3.glMultMatrixd(matrix.flattenMatrixValues(), 0);
         double[] outMatrix = new double[16];
-        gl2.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, outMatrix, 0);
+        gl3.glGetDoublev(GL3.GL_MODELVIEW_MATRIX, outMatrix, 0);*/
+    }
+
+    private void setupProjection()
+    {
+        ShaderLoader currentShader = tessellator.getCurrentShader();
+        currentShader.setUniformVariable(gl3, getProjectionMatrix(), currentShader.getProjectionName());
     }
 
     public void setupLighting()
     {
         Vector4 lightPos = new Vector4(this.lightPos[0],0);
-        gl2.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, new float[]{1,0.6f,0.6f}, 0);
-        gl2.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, new float[]{0.5f,0.5f,0.5f}, 0);
-        gl2.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, lightPos.getArray(), 0);
+        /*gl3.glLightfv(GL3.GL_LIGHT0, GL3.GL_DIFFUSE, new float[]{1, 0.6f, 0.6f}, 0);
+        gl3.glLightfv(GL3.GL_LIGHT0, GL3.GL_AMBIENT, new float[]{0.5f, 0.5f, 0.5f}, 0);
+        gl3.glLightfv(GL3.GL_LIGHT0, GL3.GL_POSITION, lightPos.getArray(), 0);*/
     }
 
     public void drawCuboid(Vector3 position, Vector3 size, Vector3 up, Vector3 down, Vector3 left, Vector3 right, Vector3 forward, Vector3 backward, Colour[] fill)
@@ -202,15 +213,16 @@ public class DrawTools
 
     public void drawTexturedTriangle(Vector3 p1, Vector3 p2, Vector3 p3, Texture tex, Colour fill)
     {
-        tessellator.draw(shaderMode);
+        tessellator.setCurrentShader(shaderMode);
+        tessellator.draw();
         tessellator.reset();
 
-        tex.bind(getGL2());
-        tex.enable(getGL2());
+        tex.bind(getGL3());
+        tex.enable(getGL3());
         drawTexturedTriangle(p1, p2, p3,new Vector2[]{new Vector2(0,1), new Vector2(1,0), new Vector2(0,0)}, fill);
-        tex.disable(getGL2());
+        tex.disable(getGL3());
 
-        tessellator.draw(shaderMode);
+        tessellator.draw();
         tessellator.reset();
     }
 
@@ -291,8 +303,8 @@ public class DrawTools
 
     public void drawTexturedQuad(Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight, Vector2 topLeftUV, Vector2 topRightUV, Vector2 bottomLeftUV,Vector2 bottomRightUV, Texture tex, Colour fill)
     {
-        tex.bind(getGL2());
-        tex.enable(getGL2());
+        tex.bind(getGL3());
+        tex.enable(getGL3());
         Vector2[] coords = new Vector2[]{bottomLeftUV, bottomRightUV, topRightUV, topLeftUV};
         int[] indices = new int[4];
         indices[0] = tessellator.addVertex(bottomLeft, fill, coords[0]);
@@ -309,7 +321,7 @@ public class DrawTools
         tessellator.addIndex((short)indices[2]);
         tessellator.addIndex((short)indices[3]);
 
-        tex.disable(getGL2());
+        tex.disable(getGL3());
     }
 
     public void drawTexturedQuad(Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight, Vector2 topLeftUV, Vector2 bottomRightUV, Texture tex, Colour fill)
@@ -331,19 +343,19 @@ public class DrawTools
     {
         double height = 100;
         double width = textWidth(text, 100);
-        gl2.glPushMatrix();
-        gl2.glTranslated(bottomLeft.getX(),bottomLeft.getY(),bottomLeft.getZ());
-        gl2.glRotated(rotX, 1, 0, 0);
-        gl2.glRotated(rotY, 0, 0, 1);
-        gl2.glScaled(size/100.0, size/100.0, size/100.0);
-        gl2.glTranslated(-origin.getX()*width, -origin.getY()*height, -origin.getZ());
-        gl2.glColor4f(col.getR(), col.getG(), col.getB(), col.getA());
-        gl2.glLineWidth((float)lineSize);
+        /*gl3.glPushMatrix();
+        gl3.glTranslated(bottomLeft.getX(), bottomLeft.getY(), bottomLeft.getZ());
+        gl3.glRotated(rotX, 1, 0, 0);
+        gl3.glRotated(rotY, 0, 0, 1);
+        gl3.glScaled(size / 100.0, size / 100.0, size / 100.0);
+        gl3.glTranslated(-origin.getX() * width, -origin.getY() * height, -origin.getZ());
+        gl3.glColor4f(col.getR(), col.getG(), col.getB(), col.getA());
+        gl3.glLineWidth((float) lineSize);
         for(int i =0; i < text.length(); i++)
         {
             glut.glutStrokeCharacter(GLUT.STROKE_ROMAN, text.charAt(i));
         }
-        gl2.glPopMatrix();
+        gl3.glPopMatrix();*/
     }
 
     public void drawBillboardText(String text, Vector3 bottomLeft, double screenFactor, Colour col, double lineSize)
@@ -352,11 +364,11 @@ public class DrawTools
         Vector4 translatePos = modelView.multiply(new Vector4(bottomLeft.getX(),bottomLeft.getY(),bottomLeft.getZ(),1));
         //System.out.println(translatePos.getX() + "," + translatePos.getY() + "," + translatePos.getZ());
         double scale = (-translatePos.getZ())/(100*screenFactor);
-        gl2.glTranslated(translatePos.getX(), translatePos.getY(), translatePos.getZ());
-        gl2.glScaled(scale,scale,scale);
-        gl2.glColor4f(col.getR(), col.getG(), col.getB(), col.getA());
-        gl2.glLineWidth((float)lineSize);
-        //gl2.glTranslated(-100, 0, 0);
+        /*gl3.glTranslated(translatePos.getX(), translatePos.getY(), translatePos.getZ());
+        gl3.glScaled(scale, scale, scale);
+        gl3.glColor4f(col.getR(), col.getG(), col.getB(), col.getA());*/
+        gl3.glLineWidth((float) lineSize);
+        //gl3.glTranslated(-100, 0, 0);
 
         for(int i =0; i < text.length(); i++)
         {
@@ -386,9 +398,9 @@ public class DrawTools
 
         end();
         start(shaderMode);
-        gl2.glDisable(GL2.GL_DEPTH_TEST);
-        gl2.glMatrixMode(GL2.GL_MODELVIEW);
-        gl2.glLoadIdentity();
+        gl3.glDisable(GL3.GL_DEPTH_TEST);
+        //gl3.glMatrixMode(GL3.GL_MODELVIEW);
+        //gl3.glLoadIdentity();
 
         return returnVectors;
     }
@@ -396,7 +408,7 @@ public class DrawTools
     public void endBillboard()
     {
         end();
-        gl2.glEnable(GL2.GL_DEPTH_TEST);
+        gl3.glEnable(GL3.GL_DEPTH_TEST);
         start();
     }
 
@@ -411,12 +423,12 @@ public class DrawTools
         Vector3 lineStart = startArrow ? start.add(normalisedDirection.multiply(startArrowSize)) : start;
         Vector3 lineEnd = endArrow ? end.subtract(normalisedDirection.multiply(endArrowSize)) : end;
 
-        gl2.glColor4f(colour.getR(), colour.getG(), colour.getB(), colour.getA());
-        gl2.glLineWidth((float) lineWidth);
-        gl2.glBegin(GL2.GL_LINES);
-        gl2.glVertex3d(lineStart.getX(), lineStart.getY(), lineStart.getZ());
-        gl2.glVertex3d(lineEnd.getX(), lineEnd.getY(), lineEnd.getZ());
-        gl2.glEnd();
+        //gl3.glColor4f(colour.getR(), colour.getG(), colour.getB(), colour.getA());
+        gl3.glLineWidth((float) lineWidth);
+        //gl3.glBegin(GL3.GL_LINES);
+        //gl3.glVertex3d(lineStart.getX(), lineStart.getY(), lineStart.getZ());
+        //gl3.glVertex3d(lineEnd.getX(), lineEnd.getY(), lineEnd.getZ());
+        //gl3.glEnd();
 
         if(startArrow)
         {
@@ -437,6 +449,9 @@ public class DrawTools
         if(hasStarted) throw new DrawToolsStateException("Must call end before calling start again!");
 
         tessellator.reset();
+        tessellator.setCurrentShader(shaderMode);
+        tessellator.useProgram();
+        setupProjection();
         setupModelView(modelView);
         setupLighting();
         hasStarted = true;
@@ -451,7 +466,7 @@ public class DrawTools
     {
         if(!hasStarted) throw new DrawToolsStateException("Not yet started, nothing to end!");
 
-        tessellator.draw(shaderMode);
+        tessellator.draw();
         hasStarted = false;
     }
 
@@ -470,9 +485,9 @@ public class DrawTools
         return tessellator;
     }
 
-    public GL2 getGL2()
+    public GL3 getGL3()
     {
-        return gl2;
+        return gl3;
     }
 
     public double textWidth(String text, double size)
@@ -506,9 +521,7 @@ public class DrawTools
 
     private Matrix4 getProjectionMatrix()
     {
-        double[] values = new double[16];
-        gl2.glGetDoublev(GL2.GL_PROJECTION_MATRIX, values, 0);
-        return Matrix4.getFromOpenGl(values);
+        return projection;
     }
 
     public boolean isPointVisible(Vector3 vec, boolean useModelTransform, double threshold)
@@ -545,7 +558,7 @@ public class DrawTools
     {
         Vector3[] results = new Vector3[2];
         int[] view = getViewport();
-        double[] projection = this.projection;
+        double[] projection = this.projection.flattenMatrixValues();
         double[] model = Matrix4.getIdentityMatrix().flattenMatrixValues();
         double[] result = new double[3];
 

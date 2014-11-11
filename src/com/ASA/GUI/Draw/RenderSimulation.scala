@@ -10,7 +10,7 @@ object RenderSimulation
 {
     def render(simulationState: SimulationState, camera: OrbitCamera, drawTools: DrawTools): Unit =
     {
-        simulationState.tiles.map(keyValue => if(keyValue._2 != null)RenderATAMTile.renderTile(keyValue._2, getLOD(RenderATAMTile.getDistanceSq(camera.getActualCameraPos, keyValue._2)), drawTools))
+       // simulationState.tiles.map(keyValue => if(keyValue._2 != null)RenderATAMTile.renderTile(keyValue._2, getLOD(RenderATAMTile.getDistanceSq(camera.getActualCameraPos, keyValue._2)), drawTools))
     }
 
     def getLOD(distance: Double): Int =
