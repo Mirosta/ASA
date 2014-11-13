@@ -13,16 +13,7 @@ out vec4 vertexColour;
 //Vertex shader
 void main()
 {
-	gl_Position = projection * modelView * (inVertex.xyz + inPosition.xyz, inVertex.w);
-	float total = 0;
-
-	for(int i =0; i < 4; i++)
-	{
-	    total += projection[i].x;
-	    total += projection[i].y;
-	    total += projection[i].z;
-	    total += projection[i].w;
-	}
+	gl_Position = projection * modelView * vec4(inVertex.xyz + inPosition.xyz, inVertex.w);
 
 	//if(total == 0) vertexColour = vec4(1,0,0,1);
 	vertexColour = inColour;//projection[1] * vec4(1,1,1,0) + vec4(0,0,0,1);//vec4(1,0,0,1);
