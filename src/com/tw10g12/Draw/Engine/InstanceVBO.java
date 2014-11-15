@@ -43,28 +43,11 @@ public class InstanceVBO extends VBO
         gl3.glGenBuffers(1, bufferPtrs, 2);
     }
 
-    @Override
-    public int addVertex(Vector3 pos, Colour col)
+    public void addInstancePosition(Vector3 position)
     {
-        return super.addVertex(pos, col);
-    }
-
-    @Override
-    public int addVertex(Vector3 pos, Colour col, Vector2 texCoord)
-    {
-        return super.addVertex(pos, col, texCoord);
-    }
-
-    @Override
-    public void addIndex(short index)
-    {
-        super.addIndex(index);
-    }
-
-    @Override
-    public void setNormals(int numberVertices, int verticeOffset)
-    {
-        super.setNormals(numberVertices, verticeOffset);
+        positions.add((float)position.getX());
+        positions.add((float)position.getY());
+        positions.add((float)position.getZ());
     }
 
     @Override
@@ -94,7 +77,8 @@ public class InstanceVBO extends VBO
     private void setupPointers()
     {
         gl3.glEnableVertexAttribArray(ShaderInstanceLocation);
-        gl3.getGL3().glVertexAttribDivisor( ShaderInstanceLocation, ShaderInstanceDivisor);
+        gl3.glVertexAttribPointer(ShaderInstanceLocation, 3, GL3.GL_FLOAT, false, Buffers.SIZEOF_FLOAT * 3, 0);
+        gl3.getGL3().glVertexAttribDivisor(ShaderInstanceLocation, ShaderInstanceDivisor);
     }
 
     @Override
@@ -115,17 +99,17 @@ public class InstanceVBO extends VBO
     public void reset()
     {
         super.reset();
-    }
-
-    @Override
-    public int getIndicesSize()
-    {
-        return super.getIndicesSize();
+        positions.clear();
     }
 
     @Override
     public boolean isEmpty()
     {
-        return super.isEmpty();
+        return super.isEmpty() || positions.size() == 0;
+    }
+
+    public int getPositionsSize()
+    {
+        return positions.size() / 3;
     }
 }
