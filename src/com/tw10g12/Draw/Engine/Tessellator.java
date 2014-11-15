@@ -6,6 +6,7 @@ import java.util.List;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
 
+import com.tw10g12.Draw.Engine.Exception.InvalidVertexBufferException;
 import com.tw10g12.Maths.Vector2;
 import com.tw10g12.Maths.Vector3;
 
@@ -13,7 +14,7 @@ public class Tessellator
 {
     private static final int defaultShader = 0;
     private static final int defaultVBO = 0;
-    private static final int defaultInstancedVBO = 1;
+
     private List<VBO> vertexBuffers = new ArrayList<VBO>();
 
     private GL3 gl3;
@@ -37,7 +38,6 @@ public class Tessellator
     private void addDefaultVBO()
     {
         addNewVBO(); //Normal VBO
-        addNewInstanceVBO(); //Instanced VBO
     }
 
     public int addVertex(Vector3 pos, Colour col)
@@ -50,7 +50,7 @@ public class Tessellator
         return vertexBuffers.get(currentVBO).addVertex(pos, col, texCoord);
     }
 
-    public void addIndex(short index)
+    public void addIndex(int index)
     {
         vertexBuffers.get(currentVBO).addIndex(index);
     }
@@ -96,7 +96,16 @@ public class Tessellator
 
     public void drawInstanced()
     {
-        //gl3.glDrawElementsInstanced(GL2.GL_TRIANGLES, vertexBuffers.get(currentVBO).getIndicesSize(), );
+        if(!(vertexBuffers.get(currentVBO) instanceof InstanceVBO)) throw new InvalidVertexBufferException("The selected vertex buffer must be an instance vertex buffer");
+        InstanceVBO vbo = (InstanceVBO)vertexBuffers.get(currentVBO);
+
+        if(vbo.isEmpty()) return;
+        resizeBuffers();
+        flushBuffers();
+
+        vbo.bind();
+
+        gl3.glDrawElementsInstanced(GL2.GL_TRIANGLES, vertexBuffers.get(currentVBO).getIndicesSize(), GL3.GL_UNSIGNED_INT, 0, vbo.getPositionsSize());
     }
 
     public void draw()
@@ -111,7 +120,7 @@ public class Tessellator
         gl3.glDrawElements(
                 GL2.GL_TRIANGLES,  /* mode */
                 vertexBuffers.get(currentVBO).getIndicesSize(),                  /* count */
-                GL2.GL_UNSIGNED_SHORT,  /* type */
+                GL2.GL_UNSIGNED_INT,  /* type */
                 0            /* element array buffer offset */
         );
 
@@ -149,7 +158,7 @@ public class Tessellator
         vertexBuffers.add(newVBO);
     }
 
-    private void addNewInstanceVBO()
+    public void addNewInstanceVBO()
     {
         InstanceVBO newVBO = new InstanceVBO(this.gl3);
         newVBO.setup();
@@ -169,5 +178,12 @@ public class Tessellator
     public int getShaderProjectionMatrixLocation()
     {
         return shaders.get(currentShader).getAttributeLocation(gl3, shaders.get(currentShader).getProjectionName());
+    }
+
+    public void addInstancePosition(Vector3 position)
+    {
+        if(!(vertexBuffers.get(currentVBO) instanceof InstanceVBO)) throw new InvalidVertexBufferException("The selected vertex buffer must be an instance vertex buffer");
+        InstanceVBO vbo = (InstanceVBO)vertexBuffers.get(currentVBO);
+        vbo.addInstancePosition(position);
     }
 }
