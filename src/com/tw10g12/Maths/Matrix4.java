@@ -58,6 +58,30 @@ public class Matrix4
         return values;
     }
 
+    @Override
+    public String toString()
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\r\n");
+        String outerSep = "";
+        for(int row = 0; row < 4; row++)
+        {
+            builder.append(outerSep);
+            builder.append("\t{");
+            String sep = "";
+            for(int col = 0; col < 4; col++)
+            {
+                builder.append(sep);
+                builder.append(elements[row][col]);
+                sep = ", ";
+            }
+            builder.append("}");
+            outerSep = ",\r\n";
+        }
+        builder.append("\r\n}");
+        return builder.toString();
+    }
+
     public static Matrix4 getIdentityMatrix()
     {
         return new Matrix4(new double[][]
@@ -217,8 +241,8 @@ public class Matrix4
         //
         //   uw         0       0       0
         //    0        uh       0       0
-        //    0         0      f/(f-n)  1
-        //    0         0    -fn/(f-n)  0
+        //    0         0      f+n/(n-f)  2fn/(n-f)
+        //    0         0    -1  0
         //
         // Make result to be identity first
 
@@ -228,7 +252,7 @@ public class Matrix4
         if(fieldOfView < 0) throw new IllegalArgumentException("Field of view must be greater than 0");
         if(aspectRatio == 0) throw new IllegalArgumentException("Aspect ratio cannot be 0");
 
-        double frustumDepth = farZ - nearZ;
+        double frustumDepth = nearZ - farZ;
         double oneOverDepth = 1.0 / frustumDepth;
         double uh = 1.0 / Math.tan(fieldOfView * (Math.PI / 360.0));
         double uw = uh/aspectRatio;
@@ -237,8 +261,8 @@ public class Matrix4
                 {
                         {uw, 0, 0, 0},
                         {0, uh, 0, 0},
-                        {0, 0, farZ * oneOverDepth, 1},
-                        {0, 0, (-farZ * nearZ) * oneOverDepth, 0}
+                        {0, 0, (farZ+nearZ) * oneOverDepth, (2.0 * farZ * nearZ) * oneOverDepth},
+                        {0, 0, -1, 0}
                 });
     }
 }
