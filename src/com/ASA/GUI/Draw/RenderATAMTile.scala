@@ -20,15 +20,18 @@ object RenderATAMTile
     def renderTile(tile: Tile, lod: Int, drawTools: DrawTools): Unit =
     {
         val position = getRenderPosition(tile.getPosition)
-        if(lod == 1 && tile.getPosition.getX % 3 == 1 && tile.getPosition.getY % 3 == 1) return
-        if(lod == 0 && tile.getPosition.getX % 2 == 1 && tile.getPosition.getY % 2 == 1) return
 
-        if(!drawTools.isPointVisible(position, true, 0.5))
-        {
-            return
-        }
         drawTools.drawCuboid(position.add(tileSize.multiply(new Vector3(-0.5, 0.5, -0.5))), tileSize, Array(tile.getColour))
         if(lod > 2) tile.glues.map(glue => renderGlue(glue, position, lod, drawTools))
+    }
+
+    def instanceRender(tile: Tile, drawTools: DrawTools): Unit =
+    {
+        val position = getRenderPosition(tile.getPosition)
+        if(drawTools.isPointVisible(position, true, 0.5))
+        {
+            drawTools.drawInstance(position)
+        }
     }
 
     def getRenderPosition(tilePosition: Vector3): Vector3 =
@@ -43,7 +46,7 @@ object RenderATAMTile
         val newCenter = position.add(tileSize.multiply(0.5).add(new Vector3(glueSideSize, glueSideSize, tileDepth).multiply(0.5)).multiply(glueDirection))
         val textCenter = newCenter.subtract(glueDirection.multiply(textOffset))
         val glueWidth = 2 * glue.strength - 1
-        val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth))
+        val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth)).add(new Vector3(0,0,tileDepth));
 
         drawTools.drawCuboid(newCenter.add(glueSize.multiply(new Vector3(-0.5, 0.5, -0.5))), glueSize, Array(Colour.Black))
         if(lod > 4) drawTools.drawText(glue.label, textCenter, 1.5, Colour.Black, 2, new Vector3(0.5, 0.5, 0), 0, 0, 0)
@@ -52,5 +55,18 @@ object RenderATAMTile
     def getDistanceSq(pos: Vector3, t: Tile): Double =
     {
         return pos.subtract(getRenderPosition(t.getPosition)).lengthSquared()
+    }
+
+    def getLODIndex(lod: Int): Int =
+    {
+        if(lod > 4) return 2
+        if(lod > 2) return 1
+        return 0
+    }
+
+    def getLODFromIndex(lodIndex: Int): Int =
+    {
+        val lod: Vector[Int] = Vector[Int](0, 3, 5)
+        return lod(lodIndex)
     }
 }
