@@ -6,6 +6,7 @@ import com.tw10g12.Maths.Matrix4;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GL3;
 import javax.media.opengl.glu.GLU;
@@ -21,6 +22,8 @@ public class DrawTools
 {
     public static final int NORMAL = 0;
     public static final int NO_LIGHTING = 1;
+    public static final int INSTANCED = 2;
+
     private GL3 gl3;
     private GLU glu;
     GLUT glut;
@@ -36,16 +39,16 @@ public class DrawTools
     private Vector3[] lightPos = new Vector3[]{new Vector3(1,-1,0)};
     private int[] viewport = new int[4];
     private Matrix4 projection = Matrix4.getIdentityMatrix();
+    private boolean instanced = false;
 
-    public DrawTools(GL3 glInstance, GLU glu, GLUT glut, ShaderLoader shaders, ShaderLoader noLightingShader)
+    public DrawTools(GL3 glInstance, GLU glu, GLUT glut, List<ShaderLoader> shaders)
     {
         this.gl3 = glInstance;
         this.glu = glu;
         this.glut = glut;
-        List<ShaderLoader> shaderLoaders = new ArrayList<ShaderLoader>();
-        shaderLoaders.add(shaders);
-        shaderLoaders.add(noLightingShader);
-        tessellator = new Tessellator(glInstance, shaderLoaders);
+
+        tessellator = new Tessellator(glInstance, shaders);
+        tessellator.addNewInstanceVBO();
     }
 
     public void clear(Colour clearColour)
@@ -70,6 +73,12 @@ public class DrawTools
     public void setupPerspectiveProjection(float screenWidth, float screenHeight)
     {
         viewport = new int[]{0,0,(int)screenWidth, (int)screenHeight};
+        /*gl3.getGL2().glMatrixMode(GL2.GL_PROJECTION);
+        gl3.getGL2().glLoadIdentity();
+        glu.gluPerspective(fieldOfView, screenWidth/screenHeight, nearZ, farZ);
+        double[] outMatrix = new double[16];
+        gl3.getGL2().glGetDoublev(GL2.GL_PROJECTION_MATRIX, outMatrix, 0);
+        Matrix4 testMatrix = Matrix4.getFromOpenGl(outMatrix);*/
         projection = Matrix4.getPerspectiveMatrix(fieldOfView, screenWidth/screenHeight, nearZ, farZ);
     }
 
@@ -145,13 +154,13 @@ public class DrawTools
         vertexIndices[1] = tessellator.addVertex(bottomRight, fill);
         tessellator.setNormals(4, 0);
 
-        tessellator.addIndex((short)vertexIndices[0]);
-        tessellator.addIndex((short)vertexIndices[1]);
-        tessellator.addIndex((short)vertexIndices[3]);
+        tessellator.addIndex(vertexIndices[0]);
+        tessellator.addIndex(vertexIndices[1]);
+        tessellator.addIndex(vertexIndices[3]);
 
-        tessellator.addIndex((short)vertexIndices[0]);
-        tessellator.addIndex((short)vertexIndices[3]);
-        tessellator.addIndex((short)vertexIndices[2]);
+        tessellator.addIndex(vertexIndices[0]);
+        tessellator.addIndex(vertexIndices[3]);
+        tessellator.addIndex(vertexIndices[2]);
     }
 
     public void drawPlane(Vector3 position, Vector3 down, Vector3 right, Vector3 size, Colour fill)
@@ -240,7 +249,7 @@ public class DrawTools
         {
             if(ordered[i] != null)
             {
-                short index = (short) tessellator.addVertex(ordered[i], fill, uvCoords[uvPtr]);
+                int index = tessellator.addVertex(ordered[i], fill, uvCoords[uvPtr]);
                 tessellator.addIndex(index);
                 uvPtr++;
             }
@@ -313,13 +322,13 @@ public class DrawTools
         indices[3] = tessellator.addVertex(topLeft, fill, coords[3]);
         tessellator.setNormals(4, 0);
 
-        tessellator.addIndex((short)indices[0]);
-        tessellator.addIndex((short)indices[1]);
-        tessellator.addIndex((short)indices[2]);
+        tessellator.addIndex(indices[0]);
+        tessellator.addIndex(indices[1]);
+        tessellator.addIndex(indices[2]);
 
-        tessellator.addIndex((short)indices[0]);
-        tessellator.addIndex((short)indices[2]);
-        tessellator.addIndex((short)indices[3]);
+        tessellator.addIndex(indices[0]);
+        tessellator.addIndex(indices[2]);
+        tessellator.addIndex(indices[3]);
 
         tex.disable(getGL3());
     }
@@ -442,15 +451,17 @@ public class DrawTools
         }
     }
 
-    public void start(int shaderMode)
+    public void start(int shaderMode, boolean instanced)
     {
         this.shaderMode = shaderMode;
+        this.instanced = instanced;
 
         if(hasStarted) throw new DrawToolsStateException("Must call end before calling start again!");
 
         tessellator.reset();
         tessellator.setCurrentShader(shaderMode);
         tessellator.useProgram();
+        tessellator.setCurrentVBO(instanced ? 1 : 0);
         setupProjection();
         setupModelView(modelView);
         setupLighting();
@@ -459,15 +470,28 @@ public class DrawTools
 
     public void start()
     {
-        start(this.NORMAL);
+        start(this.NORMAL, false);
+    }
+
+    public void start(int shaderMode)
+    {
+        start(shaderMode, false);
+    }
+
+    public void start(boolean instanced)
+    {
+        start(instanced ? this.INSTANCED : this.NORMAL, instanced);
     }
 
     public void end()
     {
         if(!hasStarted) throw new DrawToolsStateException("Not yet started, nothing to end!");
 
-        tessellator.draw();
+        if(instanced) tessellator.drawInstanced();
+        else tessellator.draw();
+
         hasStarted = false;
+        instanced = false;
     }
 
     public void setModelView(Matrix4 modelView)
@@ -547,6 +571,14 @@ public class DrawTools
         Vector3 bottomLeft = position.add(size.multiply(new Vector3(1,0,1).subtract(origin)));
         Vector3 bottomRight = position.add(size.multiply(new Vector3(0,0,0).subtract(origin)));
         drawQuad(topLeft, topRight, bottomLeft, bottomRight, fill);
+    }
+
+    public void drawInstance(Vector3 position)
+    {
+        if(instanced)
+        {
+            tessellator.addInstancePosition(position);
+        }
     }
 
     private int[] getViewport()
