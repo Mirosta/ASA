@@ -1,7 +1,8 @@
 package com.ASA.GUI.Draw
 
-import com.ASA.Model.{SimulationState}
+import com.ASA.Model.{Tile, SimulationState}
 import com.tw10g12.Draw.Engine.{OrbitCamera, DrawTools}
+import com.tw10g12.Maths.Vector3
 
 /**
  * Created by Tom on 27/10/2014.
@@ -10,12 +11,49 @@ object RenderSimulation
 {
     def render(simulationState: SimulationState, camera: OrbitCamera, drawTools: DrawTools): Unit =
     {
-       // simulationState.tiles.map(keyValue => if(keyValue._2 != null)RenderATAMTile.renderTile(keyValue._2, getLOD(RenderATAMTile.getDistanceSq(camera.getActualCameraPos, keyValue._2)), drawTools))
+        val tileTypes: Map[Int,Map[Int, List[Tile]]] = foldTiles(simulationState, camera)
+        drawTools.end()
+        tileTypes.map(keyValue => renderTileLevels(keyValue._1, keyValue._2, drawTools))
+        drawTools.start()
+    }
+
+    def renderTileLevels(tileType: Int, tileLevels: Map[Int, List[Tile]], drawTools: DrawTools): Unit =
+    {
+        if(tileLevels.size == 0) return
+        tileLevels.map(keyValue => renderTileType(tileType, RenderATAMTile.getLODFromIndex(keyValue._1), keyValue._2, drawTools))
+    }
+
+    def renderTileType(tileType: Int, lod: Int, tiles: List[Tile], drawTools: DrawTools): Unit =
+    {
+        if(tiles.length == 0) return
+        drawTools.start(true)
+        RenderATAMTile.renderTile(tiles(0).clone(new Vector3(0,0,0), Vector()), lod, drawTools)
+        tiles.map(tile => RenderATAMTile.instanceRender(tile, drawTools))
+        drawTools.end()
+    }
+
+    def foldTiles(simulationState: SimulationState, camera: OrbitCamera): Map[Int, Map[Int, List[Tile]]] =
+    {
+        simulationState.tiles.foldLeft(Map[Int,Map[Int,List[Tile]]]())((currentMap, tile) => foldHelper(currentMap, tile._2, camera))
+    }
+
+    def foldHelper(currentMap: Map[Int, Map[Int, List[Tile]]], tile: Tile, camera: OrbitCamera): Map[Int, Map[Int, List[Tile]]] =
+    {
+
+        if (!currentMap.contains(tile.typeID)) return currentMap + (tile.typeID -> processSubMap(Map[Int, List[Tile]](), tile, camera))
+        else return currentMap + (tile.typeID -> processSubMap(currentMap(tile.typeID), tile, camera))
+    }
+
+    def processSubMap(currentMap: Map[Int, List[Tile]], tile: Tile, camera: OrbitCamera): Map[Int, List[Tile]] =
+    {
+        val lodIndex: Int = RenderATAMTile.getLODIndex(getLOD(camera.getActualCameraPos.subtract(RenderATAMTile.getRenderPosition(tile.getPosition)).lengthSquared()))
+        if (!currentMap.contains(lodIndex)) return currentMap + (lodIndex -> List[Tile](tile))
+        else return currentMap + (lodIndex -> (tile :: currentMap(lodIndex)))
     }
 
     def getLOD(distance: Double): Int =
     {
-        val absDistance: Double = Math.abs(distance)
+        val absDistance: Double = distance
         if(absDistance < 50*50) return 6
         if(absDistance < 100*100) return 5
         if(absDistance < 200*200) return 4
