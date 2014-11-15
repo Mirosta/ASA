@@ -12,6 +12,7 @@ import com.jogamp.opengl.util.gl2.GLUT
 import com.tw10g12.Draw.Engine.Camera.MouseMode
 import com.tw10g12.Draw.Engine._
 import com.tw10g12.Maths.{Vector2, Vector3, Matrix4}
+import scala.collection.JavaConverters._
 
 /**
  * Created by Tom on 20/10/2014.
@@ -19,7 +20,7 @@ import com.tw10g12.Maths.{Vector2, Vector3, Matrix4}
 class DrawPanelEventHandler(val simulationController: SimulationController) extends GLEventListener with MouseMotionListener with MouseListener with MouseWheelListener
 {
     var drawTools: DrawTools = null
-    val camera: Camera = new OrbitCamera(new Vector3(-500, 500, 0), 1000)
+    val camera: Camera = new OrbitCamera(new Vector3(-1450, 1400, 0.0), 2700)
     var lastKnownMouse: Vector2 = null
 
     override def init(event: GLAutoDrawable): Unit =
@@ -27,8 +28,10 @@ class DrawPanelEventHandler(val simulationController: SimulationController) exte
 
         val gl3 = event.getGL.getGL3
         val shaderLoader: ShaderLoader = new ShaderLoader("shaders/main")
+        val instancedShader: ShaderLoader = new ShaderLoader("shaders/mainInstanced")
+        val shaders: List[ShaderLoader] = List(shaderLoader, shaderLoader, instancedShader)
 
-        this.drawTools = new DrawTools(gl3, new GLU(), new GLUT(), shaderLoader, shaderLoader)
+        this.drawTools = new DrawTools(gl3, new GLU(), new GLUT(), shaders.asJava)
         drawTools.setupPerspectiveProjection(event.getWidth, event.getHeight)
         //drawTools.setupModelView(Matrix4.getIdentityMatrix)
         gl3.glEnable(GL.GL_DEPTH_TEST)
