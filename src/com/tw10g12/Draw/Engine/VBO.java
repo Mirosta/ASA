@@ -7,10 +7,7 @@ import com.tw10g12.Maths.Vector3;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
+import java.nio.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +24,7 @@ public class VBO
     private Vector2 emptyCoord = new Vector2(-1024,-1024);
 
     protected List<Float> vertices = new ArrayList<Float>();
-    protected List<Short> indices = new ArrayList<Short>();
+    protected List<Integer> indices = new ArrayList<Integer>();
     protected int[] bufferPtrs = new int[]{-1,-1};
     protected int[] vaoPtrs = new int[]{-1};
     protected int[] bufferSizes = new int[]{0,0};
@@ -73,7 +70,7 @@ public class VBO
         return index/12;
     }
 
-    public void addIndex(short index)
+    public void addIndex(int index)
     {
         indices.add(index);
     }
@@ -111,7 +108,7 @@ public class VBO
     public void resizeBuffers()
     {
         resizeBuffer(vertices.size(), Buffers.SIZEOF_FLOAT, VerticeIndex, GL2.GL_ARRAY_BUFFER, GL2.GL_DYNAMIC_DRAW);
-        resizeBuffer(indices.size(), Buffers.SIZEOF_SHORT, IndiceIndex, GL2.GL_ELEMENT_ARRAY_BUFFER, GL2.GL_DYNAMIC_DRAW);
+        resizeBuffer(indices.size(), Buffers.SIZEOF_INT, IndiceIndex, GL2.GL_ELEMENT_ARRAY_BUFFER, GL2.GL_DYNAMIC_DRAW);
     }
 
     public void flushBuffers()
@@ -129,9 +126,9 @@ public class VBO
 
         gl3.glBindBuffer(GL2.GL_ELEMENT_ARRAY_BUFFER, bufferPtrs[IndiceIndex]);
         byteBuff = gl3.glMapBuffer(GL2.GL_ELEMENT_ARRAY_BUFFER, GL2.GL_WRITE_ONLY);
-        ShortBuffer intBuff = byteBuff.order(ByteOrder.nativeOrder()).asShortBuffer();
+        IntBuffer intBuff = byteBuff.order(ByteOrder.nativeOrder()).asIntBuffer();
 
-        for(Short i : indices)
+        for(Integer i : indices)
         {
             intBuff.put(i);
         }
@@ -181,7 +178,7 @@ public class VBO
     {
         gl3.glUnmapBuffer(GL2.GL_ELEMENT_ARRAY_BUFFER);
         gl3.glUnmapBuffer(GL2.GL_ARRAY_BUFFER);
-        gl3.glBindVertexArray(0);
+        //gl3.glBindVertexArray(0);
     }
 
     public void reset()
