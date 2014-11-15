@@ -44,7 +44,7 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
 
     def setupDrawPanel(owningPanel: JPanel): Unit =
     {
-        val caps = new GLCapabilities(GLProfile.getDefault)
+        val caps = new GLCapabilities(GLProfile.get(GLProfile.GL3))
         val panel = new GLJPanel(caps)
         val animator = new FPSAnimator(panel, 60)
         animator.start()
