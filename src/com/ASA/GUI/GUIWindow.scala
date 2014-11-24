@@ -1,10 +1,11 @@
 package com.ASA.GUI
 
+import java.awt._
 import java.awt.event.{WindowEvent, WindowListener}
-import java.awt.{Color, GridLayout}
 import javax.media.opengl.{GLCapabilities, GLProfile}
 import javax.media.opengl.awt.GLJPanel
-import javax.swing.{JFrame, JPanel}
+import javax.swing.border.{MatteBorder, LineBorder, Border}
+import javax.swing.{SwingConstants, JLabel, JFrame, JPanel}
 
 import com.ASA.Controller.SimulationController
 import com.ASA.Util
@@ -28,18 +29,75 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
     {
         println("Starting GUI Setup")
 
-        this.setSize(500,500)
+        this.setSize(960,540)
         this.setVisible(true)
 
-        val mainPanel = new JPanel()
-        mainPanel.setLayout(new GridLayout(1,1))
-        this.setLayout(new GridLayout(1,1))
-        this.add(mainPanel)
+        val mainPanel = new JPanel(new GridBagLayout())
+
+        val menuPanel = new JPanel(new GridBagLayout())
+        setupMenuPanel(menuPanel)
+
+        this.setLayout(new GridBagLayout())
+
+        addToGridBag(mainPanel, this, 2, 1, 1.0, 1.0)
+        addToGridBag(menuPanel, this, 1, 1, 0.0, 1.0)
         setupDrawPanel(mainPanel)
 
         addWindowListener(this)
         println("GUI Setup Complete")
         if(onSetup != null) onSetup.run()
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double, anchor: Int, fill: Int, insets: Insets, iPadX: Int, iPadY: Int): Unit =
+    {
+        owner.add(c, new GridBagConstraints(gridX, gridY, gridWidth, gridHeight, weightX, weightY, anchor, fill, insets, iPadX, iPadY))
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, 0.0, 0.0)
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, weightX: Double, weightY: Double): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, 1, 1, weightX, weightY, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0)
+    }
+
+    def setupMenuPanel(menuPanel: JPanel): Unit =
+    {
+        menuPanel.setPreferredSize(new Dimension(250, 0))
+        menuPanel.setBorder(new MatteBorder(0, 0, 0, 1, Color.GRAY))
+
+        val currentMenuPanel = new JPanel(new GridBagLayout())
+        val currentMenuButton = createMenuItem("Tile Editor")
+        addToGridBag(currentMenuButton, currentMenuPanel, 1, 1, 1.0, 0.0)
+
+        val contentPanel = new JPanel(new CardLayout())
+
+        val otherMenusPanel = new JPanel(new GridBagLayout())
+        val otherMenuButtons = scala.collection.immutable.List[JLabel](createMenuItem("Simulation"), createMenuItem("Settings"))
+
+        addToGridBag(otherMenuButtons(0), otherMenusPanel, 1, 1, 1.0, 0.0)
+        addToGridBag(otherMenuButtons(1), otherMenusPanel, 1, 2, 1.0, 0.0)
+
+        contentPanel.setBorder(new MatteBorder(1,0, 1, 0, Color.GRAY))
+
+        addToGridBag(currentMenuPanel, menuPanel, 1,1, 1.0, 0.0)
+        addToGridBag(contentPanel, menuPanel, 1,2, 1.0, 1.0)
+        addToGridBag(otherMenusPanel, menuPanel, 1,3, 1.0, 0.0)
+    }
+
+    def createMenuItem(name: String): JLabel =
+    {
+        val menuButton = new JLabel(name)
+        menuButton.setBackground(Color.WHITE)
+        menuButton.setOpaque(true)
+        menuButton.setBorder(new LineBorder(Color.GRAY, 1))
+        menuButton.setPreferredSize(new Dimension(250,32))
+        menuButton.setFont(menuButton.getFont.deriveFont(15f))
+        menuButton.setHorizontalAlignment(SwingConstants.CENTER)
+
+        return menuButton
     }
 
     def setupDrawPanel(owningPanel: JPanel): Unit =
@@ -55,7 +113,7 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
         panel.addMouseMotionListener(eventHandler)
         panel.addMouseWheelListener(eventHandler)
 
-        owningPanel.add(panel)
+        addToGridBag(panel, owningPanel, 1, 1, 1.0, 1.0)
     }
 
     override def windowOpened(e: WindowEvent): Unit = {}
