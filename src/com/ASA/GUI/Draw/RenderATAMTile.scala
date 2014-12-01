@@ -12,16 +12,19 @@ object RenderATAMTile
 {
     val tileSideSize = 10
     val tileDepth = 1
-    val tileSize = new Vector3(tileSideSize, tileSideSize, tileDepth)
     val glueSideSize = 1
     val textOffset = 1.7
     val scalingFactor = tileSideSize + glueSideSize*1
 
+    val tileSize = new Vector3(tileSideSize, tileSideSize, tileDepth)
+    val filledTileSize = new Vector3(scalingFactor, scalingFactor, tileDepth)
+
     def renderTile(tile: Tile, lod: Int, drawTools: DrawTools): Unit =
     {
         val position = getRenderPosition(tile.getPosition)
+        val size = if (lod > 2) tileSize else filledTileSize
 
-        drawTools.drawCuboid(position.add(tileSize.multiply(new Vector3(-0.5, 0.5, -0.5))), tileSize, Array(tile.getColour))
+        drawTools.drawCuboid(position.add(size.multiply(new Vector3(-0.5, 0.5, -0.5))), size, Array(tile.getColour))
         if(lod > 2) tile.glues.map(glue => renderGlue(glue, position, lod, drawTools))
     }
 
