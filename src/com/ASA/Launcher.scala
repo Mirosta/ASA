@@ -19,8 +19,7 @@ object Launcher
         val simulationController = new SimulationController(getSimulation())
         val gui = new GUIWindow(simulationController)
 
-        val onSetup = Util.toRunnable(simulationController.beginSimulation)
-        gui.onSetup = onSetup
+        gui.onSetup = null
         gui.onClosed = Util.toRunnable(() => onClose(simulationController))
         gui.startSetup()
 
@@ -28,7 +27,7 @@ object Launcher
 
     def onClose(simulationController: SimulationController): Unit =
     {
-        simulationController.endSimulation
+        simulationController.pauseSimulation()
         Util.threadPool.shutdownNow()
         Util.threadPool.awaitTermination(0, TimeUnit.SECONDS)
         println("Threadpool terminated")
@@ -45,6 +44,14 @@ object Launcher
             new ATAMTile(Vector(new ATAMGlue("0", 1), new ATAMGlue("0", 1), new ATAMGlue("0", 1), new ATAMGlue("0", 1)), Vector[Colour](Colour.Orange), new Vector3(0,0,0), 4),
             new ATAMTile(Vector(new ATAMGlue("0", 1), new ATAMGlue("1", 1), new ATAMGlue("1", 1), new ATAMGlue("0", 1)), Vector[Colour](Colour.Orange), new Vector3(0,0,0), 5)
         )
-        return new Simulation(startingTile, otherTiles)
+        val adderTiles = Vector[Tile](
+            new ATAMTile(Vector(new ATAMGlue("N", 2), null, new ATAMGlue("N", 2), new ATAMGlue("1", 1)), Vector[Colour](Colour.PleasantBlue), new Vector3(0,0,0), 0),
+            new ATAMTile(Vector(new ATAMGlue("1", 1), new ATAMGlue("W", 2), null, new ATAMGlue("W", 2)), Vector[Colour](Colour.PleasantBlue), new Vector3(0,0,0), 1),
+            new ATAMTile(Vector(new ATAMGlue("1", 1), new ATAMGlue("0", 1), new ATAMGlue("1", 1), new ATAMGlue("0", 1)), Vector[Colour](Colour.PleasantBlue), new Vector3(0,0,0), 2),
+            new ATAMTile(Vector(new ATAMGlue("1", 1), new ATAMGlue("1", 1), new ATAMGlue("0", 1), new ATAMGlue("0", 1)), Vector[Colour](Colour.PleasantBlue), new Vector3(0,0,0), 3),
+            new ATAMTile(Vector(new ATAMGlue("0", 1), new ATAMGlue("0", 1), new ATAMGlue("0", 1), new ATAMGlue("0", 1)), Vector[Colour](Colour.Orange), new Vector3(0,0,0), 4),
+            new ATAMTile(Vector(new ATAMGlue("0", 1), new ATAMGlue("1", 1), new ATAMGlue("1", 1), new ATAMGlue("1", 1)), Vector[Colour](Colour.Orange), new Vector3(0,0,0), 5)
+        )
+        return new Simulation(startingTile, adderTiles)
     }
 }

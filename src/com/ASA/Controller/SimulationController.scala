@@ -1,9 +1,7 @@
 package com.ASA.Controller
 
-import java.util.Date
-
 import com.ASA.Debug.Profiler
-import com.ASA.Model.{SimulationState, Simulation}
+import com.ASA.Model.{Simulation, SimulationState}
 import com.ASA.Util
 
 import scala.actors.threadpool.Future
@@ -11,19 +9,41 @@ import scala.actors.threadpool.Future
 /**
  * Created by Tom on 03/11/2014.
  */
+
+object SimulationState extends Enumeration
+{
+    type SimulationState = Value
+    val Stopped, Running, Paused = Value
+}
+
 class SimulationController(val simulation: Simulation)
 {
+
     var future: Future = null
+    var state = SimulationState.Stopped
 
     def beginSimulation(): Unit =
     {
-
         future = Util.threadPool.submit(Util.toRunnable(doSimulation))
+        state = SimulationState.Running
     }
 
-    def endSimulation(): Unit =
+    def pauseSimulation(): Unit =
     {
         if(future != null) future.cancel(true)
+        state = SimulationState.Paused
+    }
+
+    def stopSimulation(): Unit =
+    {
+        pauseSimulation()
+        resetSimulation()
+        state = SimulationState.Stopped
+    }
+
+    def resetSimulation(): Unit =
+    {
+        simulation.reset()
     }
 
     def doSimulation(): Unit =

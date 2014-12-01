@@ -7,4 +7,7 @@ import javax.swing.*;
  */
 public class TestWindow
 {
+    private JButton editTilesetButton;
+    private JButton startButton;
+    private JButton stopButton;
 }

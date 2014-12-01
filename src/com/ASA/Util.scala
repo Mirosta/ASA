@@ -1,8 +1,7 @@
 package com.ASA
 
-import java.util.concurrent.ThreadPoolExecutor
+import java.awt.{Component, Container, GridBagConstraints, Insets}
 
-import com.sun.javaws.exceptions.InvalidArgumentException
 import com.tw10g12.Maths.Vector3
 
 import scala.actors.threadpool.Executors
@@ -59,5 +58,20 @@ object Util
             case 5 => return 4 //Down
         }
         throw new IllegalArgumentException("Unknown orientation " + orientation)
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double, anchor: Int, fill: Int, insets: Insets, iPadX: Int, iPadY: Int): Unit =
+    {
+        owner.add(c, new GridBagConstraints(gridX, gridY, gridWidth, gridHeight, weightX, weightY, anchor, fill, insets, iPadX, iPadY))
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, 0.0, 0.0)
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, weightX: Double, weightY: Double): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, 1, 1, weightX, weightY, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0,0,0,0), 0, 0)
     }
 }

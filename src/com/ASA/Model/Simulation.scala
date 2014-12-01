@@ -9,6 +9,7 @@ import scala.util.Random
  */
 class Simulation(startingTile: Tile, tileTypes: Vector[Tile])
 {
+
     var state: SimulationState = new SimulationState(startingTile, tileTypes)
     val rnd = new Random()
 
@@ -16,5 +17,10 @@ class Simulation(startingTile: Tile, tileTypes: Vector[Tile])
     {
         state = state.nextState(rnd)
         Profiler.profile("Created new state")
+    }
+
+    def reset(): Unit =
+    {
+        state = new SimulationState(startingTile, tileTypes)
     }
 }
