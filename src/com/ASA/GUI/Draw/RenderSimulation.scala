@@ -1,7 +1,7 @@
 package com.ASA.GUI.Draw
 
-import com.ASA.Model.{Tile, SimulationState}
-import com.tw10g12.Draw.Engine.{OrbitCamera, DrawTools}
+import com.ASA.Model.{SimulationState, Tile}
+import com.tw10g12.Draw.Engine.{DrawTools, OrbitCamera}
 import com.tw10g12.Maths.Vector3
 
 /**
@@ -29,6 +29,7 @@ object RenderSimulation
         drawTools.start(true)
         RenderATAMTile.renderTile(tiles(0).clone(new Vector3(0,0,0), Vector()), lod, drawTools)
         tiles.map(tile => RenderATAMTile.instanceRender(tile, drawTools))
+        tiles.map(tile => RenderATAMTile.afterRender(tile, tile.getPosition, lod, drawTools))
         drawTools.end()
     }
 
@@ -46,9 +47,14 @@ object RenderSimulation
 
     def processSubMap(currentMap: Map[Int, List[Tile]], tile: Tile, camera: OrbitCamera): Map[Int, List[Tile]] =
     {
-        val lodIndex: Int = RenderATAMTile.getLODIndex(getLOD(camera.getActualCameraPos.subtract(RenderATAMTile.getRenderPosition(tile.getPosition)).lengthSquared()))
+        val lodIndex: Int = RenderATAMTile.getLODIndex(getLOD(getTileDistance(camera, tile)))
         if (!currentMap.contains(lodIndex)) return currentMap + (lodIndex -> List[Tile](tile))
         else return currentMap + (lodIndex -> (tile :: currentMap(lodIndex)))
+    }
+
+    def getTileDistance(camera: OrbitCamera, tile: Tile): Double =
+    {
+        return camera.getActualCameraPos.subtract(RenderATAMTile.getRenderPosition(tile.getPosition)).lengthSquared()
     }
 
     def getLOD(distance: Double): Int =
