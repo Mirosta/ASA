@@ -196,4 +196,9 @@ public class VBO
     {
         return vertices.size() == 0 || indices.size() == 0;
     }
+
+    public void setGL3(GL3 gl3)
+    {
+        this.gl3 = gl3;
+    }
 }
