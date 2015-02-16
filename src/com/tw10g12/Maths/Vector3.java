@@ -1,5 +1,7 @@
 package com.tw10g12.Maths;
 
+import java.security.InvalidParameterException;
+
 public class Vector3
 {
     protected double x;
@@ -25,6 +27,15 @@ public class Vector3
         this.x = v.getX();
         this.y = v.getY();
         this.z = z;
+    }
+
+    public Vector3(float[] floatArr)
+    {
+        if(floatArr.length != 3) throw new InvalidParameterException("Must be an array with 3 elements");
+
+        this.x = floatArr[0];
+        this.y = floatArr[1];
+        this.z = floatArr[2];
     }
 
     public double getX()
@@ -192,5 +203,10 @@ public class Vector3
         if (v1.getY() != v2.getY()) return false;
         if (v1.getZ() != v2.getZ()) return false;
         return true;
+    }
+
+    public float[] toFloatArray()
+    {
+        return new float[] {(float) x, (float)y, (float)z};
     }
 }

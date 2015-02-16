@@ -23,6 +23,14 @@ public class Vector4
         this.w = w;
     }
 
+    public Vector4(Vector2 v, double z, double w)
+    {
+        this.x = v.getX();
+        this.y = v.getY();
+        this.z = z;
+        this.w = w;
+    }
+
     public double getX()
     {
         return x;
