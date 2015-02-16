@@ -1,14 +1,26 @@
 package com.tw10g12.Draw.Engine;
 
+import com.ASA.Util;
+import com.jogamp.graph.curve.Region;
+import com.jogamp.graph.curve.opengl.GLRegion;
+import com.jogamp.graph.curve.opengl.TextRenderer;
+import com.jogamp.graph.font.Font;
+import com.jogamp.graph.font.FontFactory;
+import com.jogamp.graph.geom.Triangle;
+import com.jogamp.graph.geom.Vertex;
+import com.jogamp.opengl.math.geom.AABBox;
+import com.sun.prism.ps.Shader;
 import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
 import com.tw10g12.Maths.Matrix4;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GL3;
+import javax.media.opengl.fixedfunc.GLMatrixFunc;
 import javax.media.opengl.glu.GLU;
 
 import com.jogamp.opengl.util.gl2.GLUT;
@@ -16,6 +28,8 @@ import com.jogamp.opengl.util.texture.Texture;
 import com.tw10g12.Maths.Vector2;
 import com.tw10g12.Maths.Vector3;
 import com.tw10g12.Maths.Vector4;
+import jogamp.graph.curve.opengl.TextRendererImpl01;
+import jogamp.graph.curve.text.GlyphString;
 
 @SuppressWarnings(value = { "unused" })
 public class DrawTools
@@ -40,6 +54,8 @@ public class DrawTools
     private int[] viewport = new int[4];
     private Matrix4 projection = Matrix4.getIdentityMatrix();
     private boolean instanced = false;
+    private TextRenderer textRenderer = null;
+    private Font font = null;
 
     public DrawTools(GL3 glInstance, GLU glu, GLUT glut, List<ShaderLoader> shaders)
     {
@@ -80,6 +96,18 @@ public class DrawTools
         gl3.getGL2().glGetDoublev(GL2.GL_PROJECTION_MATRIX, outMatrix, 0);
         Matrix4 testMatrix = Matrix4.getFromOpenGl(outMatrix);*/
         projection = Matrix4.getPerspectiveMatrix(fieldOfView, screenWidth/screenHeight, nearZ, farZ);
+    }
+
+    double tanFOV = 1 / Math.sqrt(3.0);
+
+    public double getNearClipHeight()
+    {
+        return tanFOV * nearZ;
+    }
+
+    public double getNearZ()
+    {
+        return nearZ;
     }
 
     public void setupModelView(Matrix4 matrix)
@@ -350,8 +378,25 @@ public class DrawTools
 
     public void drawText(String text, Vector3 bottomLeft, double size, Colour col, double lineSize, Vector3 origin, double rotX, double rotY, double rotZ)
     {
-        double height = 100;
-        double width = textWidth(text, 100);
+        //int previousShaderMode = shaderMode;
+        //boolean previousInstanced = instanced;
+        TextRenderer textRenderer = getTextRenderer();
+        if(!textRenderer.isInitialized()) textRenderer.init(getGL3());
+        textRenderer.enable(getGL3(), true);
+        AABBox stringSize = getFont().getStringBounds(text, 1);
+        textRenderer.getMatrix().glMatrixMode(GLMatrixFunc.GL_MODELVIEW);
+        textRenderer.getMatrix().glLoadMatrixf(getModelView().flattenMatrixValuesAsFloats(), 0);
+        textRenderer.translate(getGL3(), (float) bottomLeft.getX(), (float) bottomLeft.getY(), (float) bottomLeft.getZ());
+        textRenderer.rotate(getGL3(), (float) rotX, 1, 0, 0);
+        textRenderer.rotate(getGL3(), (float) rotY, 0, 0, 1);
+        textRenderer.scale(getGL3(), (float)size, (float)size, (float)size);
+        textRenderer.translate(getGL3(), (float)-origin.getX() * stringSize.getWidth(), (float)-origin.getY() * stringSize.getHeight() * 0.5f, (float)-origin.getZ());
+        textRenderer.drawString3D(getGL3(), getFont(), text, new float[]{1, 1}, 1, new int[]{12, 12});
+        textRenderer.enable(getGL3(), false);
+        recreateGLSettings();
+
+        //double height = 100;
+        //double width = textWidth(text, 100);
         /*gl3.glPushMatrix();
         gl3.glTranslated(bottomLeft.getX(), bottomLeft.getY(), bottomLeft.getZ());
         gl3.glRotated(rotX, 1, 0, 0);
@@ -468,6 +513,14 @@ public class DrawTools
         hasStarted = true;
     }
 
+    public void recreateGLSettings()
+    {
+        tessellator.useProgram();
+        tessellator.setCurrentVBO(instanced ? 1 : 0);
+        setupProjection();
+        setupModelView(modelView);
+    }
+
     public void start()
     {
         start(this.NORMAL, false);
@@ -509,9 +562,38 @@ public class DrawTools
         return tessellator;
     }
 
+    public TextRenderer getTextRenderer()
+    {
+        if(textRenderer == null) textRenderer = TextRenderer.create(JOGLUtil.getRenderState(this), 1);
+        return textRenderer;
+    }
+
+    private Font getFont()
+    {
+        if(font == null)
+        {
+            try
+            {
+                font = FontFactory.get(FontFactory.JAVA).getDefault();
+            }
+            catch (IOException ex)
+            {
+                System.err.println("Couldn't load font - " + ex.getLocalizedMessage());
+                ex.printStackTrace();
+            }
+        }
+        return font;
+    }
+
     public GL3 getGL3()
     {
         return gl3;
+    }
+
+    public void setGL3(GL3 gl3)
+    {
+        this.gl3 = gl3;
+        this.tessellator.setGL3(gl3);
     }
 
     public double textWidth(String text, double size)
@@ -543,7 +625,7 @@ public class DrawTools
         setupModelView(mat);
     }
 
-    private Matrix4 getProjectionMatrix()
+    public Matrix4 getProjectionMatrix()
     {
         return projection;
     }
@@ -611,5 +693,10 @@ public class DrawTools
         int[] viewport = getViewport();
         double aspect = (double)viewport[2]/(double)viewport[3];
         return new Vector3(aspect,1,1).multiply(d);
+    }
+
+    public ShaderLoader getCurrentShader()
+    {
+        return tessellator.getCurrentShader();
     }
 }
