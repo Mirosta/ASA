@@ -23,4 +23,9 @@ class Simulation(startingTile: Tile, tileTypes: Vector[Tile])
     {
         state = new SimulationState(startingTile, tileTypes)
     }
+
+    def getTileTypes(): (Tile, Vector[Tile]) =
+    {
+        return (startingTile, tileTypes)
+    }
 }
