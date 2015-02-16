@@ -186,4 +186,13 @@ public class Tessellator
         InstanceVBO vbo = (InstanceVBO)vertexBuffers.get(currentVBO);
         vbo.addInstancePosition(position);
     }
+
+    public void setGL3(GL3 gl3)
+    {
+        this.gl3 = gl3;
+        for(VBO vbo : vertexBuffers)
+        {
+            vbo.setGL3(gl3);
+        }
+    }
 }
