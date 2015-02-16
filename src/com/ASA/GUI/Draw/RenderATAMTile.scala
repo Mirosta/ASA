@@ -1,15 +1,17 @@
 package com.ASA.GUI.Draw
 
+import com.ASA.GUI.Interaction.{AABBIntersectable, Intersectable}
 import com.ASA.Model.{Glue, Tile}
 import com.ASA.Util
 import com.tw10g12.Draw.Engine.{Colour, DrawTools}
-import com.tw10g12.Maths.{Vector3, Vector2}
+import com.tw10g12.Maths.Vector3
 
 /**
  * Created by Tom on 27/10/2014.
  */
 object RenderATAMTile
 {
+
     val tileSideSize = 10
     val tileDepth = 1
     val glueSideSize = 1
@@ -26,6 +28,26 @@ object RenderATAMTile
 
         drawTools.drawCuboid(position.add(size.multiply(new Vector3(-0.5, 0.5, -0.5))), size, Array(tile.getColour))
         if(lod > 2) tile.glues.map(glue => renderGlue(glue, position, lod, drawTools))
+    }
+
+    def getIntersectables(tile: Tile, lod: Int): List[Intersectable] =
+    {
+        val position = getRenderPosition(tile.getPosition)
+        val size = if (lod > 2) tileSize else filledTileSize
+        val mainIntersectable: Intersectable = new AABBIntersectable(position.add(size.multiply(new Vector3(-0.5, -0.5, -1.5))), size)
+        return mainIntersectable :: tile.glues.flatMap(glue => getGlueIntersectables(glue, position, lod)).toList
+    }
+
+    def getGlueIntersectables(glue: Glue, position: Vector3, lod: Int): List[Intersectable] =
+    {
+        if(glue == null) return List[Intersectable]()
+
+        val glueDirection = Util.orientationToVector(glue.orientation).multiply(new Vector3(-1, 1, 1))
+        val newCenter = position.add(tileSize.multiply(0.5).add(new Vector3(glueSideSize, glueSideSize, tileDepth).multiply(0.5)).multiply(glueDirection))
+        val glueWidth = 2 * glue.strength - 1
+        val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth)).add(new Vector3(0,0,tileDepth))
+
+        return List[Intersectable](new AABBIntersectable(newCenter.add(glueSize.multiply(new Vector3(-0.5, -0.5, -1.5))), glueSize))
     }
 
     def instanceRender(tile: Tile, drawTools: DrawTools): Unit =
@@ -47,12 +69,29 @@ object RenderATAMTile
         if(glue == null) return
         val glueDirection = Util.orientationToVector(glue.orientation).multiply(new Vector3(-1, 1, 1))
         val newCenter = position.add(tileSize.multiply(0.5).add(new Vector3(glueSideSize, glueSideSize, tileDepth).multiply(0.5)).multiply(glueDirection))
-        val textCenter = newCenter.subtract(glueDirection.multiply(textOffset))
         val glueWidth = 2 * glue.strength - 1
-        val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth)).add(new Vector3(0,0,tileDepth));
+        val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth)).add(new Vector3(0,0,tileDepth))
 
         drawTools.drawCuboid(newCenter.add(glueSize.multiply(new Vector3(-0.5, 0.5, -0.5))), glueSize, Array(Colour.Black))
-        if(lod > 4) drawTools.drawText(glue.label, textCenter, 1.5, Colour.Black, 2, new Vector3(0.5, 0.5, 0), 0, 0, 0)
+    }
+
+    def afterRender(tile: Tile, tilePosition: Vector3, lod: Int, drawTools: DrawTools) : Unit =
+    {
+        if(lod > 4)
+        {
+            val renderPosition: Vector3 = getRenderPosition(tilePosition)
+            tile.glues.map(glue =>
+                {
+                    if(glue != null)
+                    {
+                        val glueDirection = Util.orientationToVector(glue.orientation).multiply(new Vector3(-1, 1, 1))
+                        val newCenter = renderPosition.add(tileSize.multiply(0.5).add(new Vector3(glueSideSize, glueSideSize, tileDepth).multiply(0.5)).multiply(glueDirection))
+                        val textCenter = newCenter.subtract(glueDirection.multiply(textOffset))
+                        drawTools.drawText(glue.label, textCenter, 1.5, Colour.Black, 2, new Vector3(0.5, 0.5, 0), 0, 0, 0)
+                    }
+                }
+            )
+        }
     }
 
     def getDistanceSq(pos: Vector3, t: Tile): Double =
