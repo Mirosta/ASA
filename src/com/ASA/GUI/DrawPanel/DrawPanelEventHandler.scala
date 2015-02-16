@@ -1,51 +1,48 @@
-package com.ASA.GUI
+package com.ASA.GUI.DrawPanel
 
 import java.awt.event._
-import javax.media.opengl.glu.GLU
-import javax.media.opengl.{GL, GL2, GLAutoDrawable, GLEventListener}
+import javax.media.opengl.{DebugGL3, GL, GLAutoDrawable, GLEventListener}
 
-import com.ASA.Controller.SimulationController
-import com.ASA.GUI.Draw.{RenderATAMTile, RenderSimulation, RenderMain}
-import com.ASA.Model.ATAM.{ATAMGlue, ATAMTile}
-import com.ASA.Model.{Tile, Simulation}
-import com.jogamp.opengl.util.gl2.GLUT
+import com.ASA.GUI.Draw.RenderMain
+import com.ASA.Util.JOGLUtil
 import com.tw10g12.Draw.Engine.Camera.MouseMode
-import com.tw10g12.Draw.Engine._
-import com.tw10g12.Maths.{Vector2, Vector3, Matrix4}
-import scala.collection.JavaConverters._
+import com.tw10g12.Draw.Engine.{Camera, DrawTools}
+import com.tw10g12.Maths.Vector2
 
 /**
  * Created by Tom on 20/10/2014.
  */
-class DrawPanelEventHandler(val simulationController: SimulationController) extends GLEventListener with MouseMotionListener with MouseListener with MouseWheelListener
+abstract class DrawPanelEventHandler extends GLEventListener with MouseMotionListener with MouseListener with MouseWheelListener
 {
     var drawTools: DrawTools = null
-    val camera: Camera = new OrbitCamera(new Vector3(-1450, 1400, 0.0), 2700)
+    val camera: Camera = setupCamera()
     var lastKnownMouse: Vector2 = null
 
-    override def init(event: GLAutoDrawable): Unit =
+    def setupCamera(): Camera
+
+    override def init(drawable: GLAutoDrawable): Unit =
     {
+        drawable.setGL(new DebugGL3(drawable.getGL().getGL3()))
+        val gl3 = drawable.getGL.getGL3
 
-        val gl3 = event.getGL.getGL3
-        val shaderLoader: ShaderLoader = new ShaderLoader("shaders/main")
-        val instancedShader: ShaderLoader = new ShaderLoader("shaders/mainInstanced")
-        val shaders: List[ShaderLoader] = List(shaderLoader, shaderLoader, instancedShader)
-
-        this.drawTools = new DrawTools(gl3, new GLU(), new GLUT(), shaders.asJava)
-        drawTools.setupPerspectiveProjection(event.getWidth, event.getHeight)
+        this.drawTools = JOGLUtil.getDrawTools(gl3)
+        drawTools.setupPerspectiveProjection(drawable.getWidth, drawable.getHeight)
         //drawTools.setupModelView(Matrix4.getIdentityMatrix)
         gl3.glEnable(GL.GL_DEPTH_TEST)
         gl3.glDepthFunc(GL.GL_LESS)
     }
 
-    override def display(p1: GLAutoDrawable): Unit =
+    override def display(drawable: GLAutoDrawable): Unit =
     {
+        drawTools.setGL3(drawable.getGL().getGL3())
         RenderMain.before(drawTools, camera)
+        render(drawable)
         //RenderATAMTile.renderTile(startingTile.clone(new Vector3(-1, 0, 0), Vector[Int]()), drawTools)
         //otherTiles.map(tile => RenderATAMTile.renderTile(tile.clone(new Vector3(tile.typeID, 0, 0), Vector[Int]()), drawTools))
-        RenderSimulation.render(simulationController.getSimulationState, camera.asInstanceOf[OrbitCamera], drawTools)
         RenderMain.after(drawTools)
     }
+
+    def render(drawable: GLAutoDrawable): Unit
 
     override def reshape(autoDrawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit =
     {
@@ -56,11 +53,7 @@ class DrawPanelEventHandler(val simulationController: SimulationController) exte
 
     def reset(): Unit =
     {
-        camera.setCameraPos(new Vector3(0,0,0))
-        camera.asInstanceOf[OrbitCamera].setDistance(100)
-        camera.setRotX(0)
-        camera.setRotY(0)
-        camera.setRotZ(0)
+        camera.reset()
     }
 
     override def mouseClicked(e: MouseEvent): Unit =

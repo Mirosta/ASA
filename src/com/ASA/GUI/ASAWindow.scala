@@ -2,19 +2,20 @@ package com.ASA.GUI
 
 import java.awt._
 import java.awt.event.{WindowEvent, WindowListener}
+import javax.media.opengl.GLCapabilities
 import javax.media.opengl.awt.GLJPanel
-import javax.media.opengl.{GLCapabilities, GLProfile}
 import javax.swing.border.{LineBorder, MatteBorder}
 import javax.swing.{JPanel, SwingConstants}
 
-import com.ASA.Controller.{HasMenu, MenuController, SimulationController}
+import com.ASA.Controller.{HasMenu, MenuController}
+import com.ASA.GUI.DrawPanel.DrawPanelEventHandler
 import com.ASA.Util._
 import com.jogamp.opengl.util.FPSAnimator
 
 /**
- * Created by Tom on 20/10/2014.
+ * Created by Tom on 07/02/2015.
  */
-class GUIWindow(val simulationController: SimulationController) extends javax.swing.JFrame with WindowListener with HasMenu
+abstract class ASAWindow(startVisible: Boolean) extends javax.swing.JFrame with WindowListener with HasMenu
 {
     val menuController: MenuController = new MenuController(this)
 
@@ -25,11 +26,7 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
 
     var contentPanel: JPanel = null
     var cardLayout: CardLayout = null
-    val CARD_TILE_EDITOR = "tile"
-    val CARD_SIMULATION = "simulation"
-    val CARD_SETTINGS = "settings"
 
-    //Constructor
     def startSetup(): Unit =
     {
         javax.swing.SwingUtilities.invokeLater( toRunnable(setup) )
@@ -43,7 +40,7 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
         println("Starting GUI Setup")
 
         this.setSize(960,540)
-        this.setVisible(true)
+        this.setVisible(startVisible)
 
         val mainPanel = new JPanel(new GridBagLayout())
 
@@ -67,54 +64,31 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
         menuPanel.setBorder(new MatteBorder(0, 0, 0, 1, Color.GRAY))
 
         currentMenuPanel = new JPanel(new GridBagLayout())
-        val currentMenuButton = createMenuItem("Tile Editor", CARD_TILE_EDITOR)
 
         cardLayout = new CardLayout()
         contentPanel = new JPanel(cardLayout)
 
         otherMenusPanel = new JPanel(new GridBagLayout())
-        val otherMenuButtons = scala.collection.immutable.List[MenuItem](createMenuItem("Simulation", CARD_SIMULATION), createMenuItem("Settings", CARD_SETTINGS))
 
-        addToGridBag(currentMenuButton, otherMenusPanel, 1, 1, 1.0, 0.0)
-        addToGridBag(otherMenuButtons(0), otherMenusPanel, 1, 2, 1.0, 0.0)
-        addToGridBag(otherMenuButtons(1), otherMenusPanel, 1, 3, 1.0, 0.0)
+        setupMenuItems()
+
+        var gridY = 1
+        menuItems.map(menu => { addToGridBag(menu, otherMenusPanel, 1, gridY, 1.0, 0.0); gridY += 1 })
 
         contentPanel.setBorder(new MatteBorder(1,0, 1, 0, Color.GRAY))
 
-        setupTileEditorPanel()
-        setupSimulationPanel()
-        setupSettingsPanel()
+        setupMenuCardPanels()
 
         addToGridBag(currentMenuPanel, menuPanel, 1,1, 1.0, 0.0)
         addToGridBag(contentPanel, menuPanel, 1,2, 1.0, 1.0)
         addToGridBag(otherMenusPanel, menuPanel, 1,3, 1.0, 0.0)
 
-        setActiveMenu(otherMenuButtons(0))
+        menuSetupComplete()
     }
 
-    def setupTileEditorPanel(): Unit =
-    {
-        val panel = new JPanel()
-        panel.setBackground(Color.RED)
-        contentPanel.add(panel, CARD_TILE_EDITOR)
-    }
-
-    def setupSimulationPanel(): Unit =
-    {
-        val panel = new JPanel()
-        val simulationPanel = new SimulationPanel(simulationController)
-        simulationPanel.setup()
-
-        addToGridBag(simulationPanel, panel, 1, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 10, 10, 10), 0, 0)
-        contentPanel.add(panel, CARD_SIMULATION)
-    }
-
-    def setupSettingsPanel(): Unit =
-    {
-        val panel = new JPanel()
-        panel.setBackground(Color.BLUE)
-        contentPanel.add(panel, CARD_SETTINGS)
-    }
+    def setupMenuItems(): Unit
+    def setupMenuCardPanels(): Unit
+    def menuSetupComplete(): Unit
 
     def createMenuItem(name: String, cardPanel: String): MenuItem =
     {
@@ -134,12 +108,13 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
 
     def setupDrawPanel(owningPanel: JPanel): Unit =
     {
-        val caps = new GLCapabilities(GLProfile.get(GLProfile.GL3))
+        val caps = new GLCapabilities(JOGLUtil.getOpenGLProfile())
         val panel = new GLJPanel(caps)
         val animator = new FPSAnimator(panel, 60)
         animator.start()
 
-        val eventHandler: DrawPanelEventHandler = new DrawPanelEventHandler(simulationController)
+        val eventHandler: DrawPanelEventHandler = getDrawPanelEventHandler()
+
         panel.addGLEventListener(eventHandler)
         panel.addMouseListener(eventHandler)
         panel.addMouseMotionListener(eventHandler)
@@ -147,6 +122,8 @@ class GUIWindow(val simulationController: SimulationController) extends javax.sw
 
         addToGridBag(panel, owningPanel, 1, 1, 1.0, 1.0)
     }
+
+    def getDrawPanelEventHandler(): DrawPanelEventHandler
 
     override def windowOpened(e: WindowEvent): Unit = {}
 
