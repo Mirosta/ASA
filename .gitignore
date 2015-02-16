@@ -3,6 +3,6 @@
 ASA.iml
 /out
 /lib
-asa.xml
-module_asa.xml
-asa.properties
+asa*.xml
+module_asa*.xml
+asa*.properties

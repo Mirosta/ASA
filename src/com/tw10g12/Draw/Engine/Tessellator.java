@@ -129,9 +129,9 @@ public class Tessellator
 
     private void cleanup()
     {
-        gl3.glUseProgram(0);
-        vertexBuffers.get(currentVBO).unbind();
-        cleanupClientState();
+        //gl3.glUseProgram(0);
+        //vertexBuffers.get(currentVBO).unbind();
+        //cleanupClientState();
     }
 
     public void setNormals(int numberVertices, int verticeOffset)
