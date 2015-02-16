@@ -10,6 +10,7 @@ public class Colour
 	public static Colour White = new Colour(1f,1,1,1);
 	public static Colour Transparent = new Colour(0f,0,0,0);
 	public static Colour Orange = new Colour(229, 145, 75, 255);
+    public static Colour Yellow = new Colour(255, 255, 0);
 	protected float r,g,b,a;
 
     public Colour(float r, float g, float b, float a)
