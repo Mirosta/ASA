@@ -57,4 +57,9 @@ class ATAMTile(setupGlues: Vector[Glue], colours: Vector[Colour], position: Vect
         if(matchingOrientations.length == 1) return glue.clone(true)
         return glue
     }
+
+    def setColour(newColour: Colour): ATAMTile =
+    {
+        return new ATAMTile(glues, Vector[Colour](newColour), position, typeID)
+    }
 }
