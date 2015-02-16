@@ -8,7 +8,8 @@ public abstract interface Camera
 {
 	public abstract Matrix4 getMatrix(double scale);
 	public abstract Matrix4 getSkybox(double scale);
-	
+	public abstract Matrix4 getInverseMatrix(double scale);
+
 	public abstract double getRotX();
 	public abstract void setRotX(double rot);
 	
@@ -23,7 +24,9 @@ public abstract interface Camera
 	
 	public abstract void doMouseAction(Vector2 mouseDelta, MouseMode mode);
 	public abstract void doZoomAction(double mouseDelta);
-	
+
+    public abstract void reset();
+
 	public enum MouseMode
 	{
 		PAN,

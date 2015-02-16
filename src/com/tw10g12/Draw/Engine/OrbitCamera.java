@@ -7,11 +7,18 @@ import com.tw10g12.Maths.Vector4;
 
 public class OrbitCamera implements Camera
 {
+    double defaultRotX;
+    double defaultRotY;
+    double defaultRotZ;
+    double defaultDistance;
+
 	double rotX;
 	double rotY;
 	double rotZ;
 	double distance;
-	
+
+    Vector3 defaultLookAt;
+
 	Vector3 lookAt;
 	public Vector3 forward;
 	public Vector3 up;
@@ -34,6 +41,13 @@ public class OrbitCamera implements Camera
 		this.rotX = rotX;
 		this.rotY = rotY;
 		this.rotZ = rotZ;
+
+        this.defaultLookAt = lookAt.add(new Vector3(0,0,0)); //Clone vector
+        this.defaultDistance = distance;
+        this.defaultRotX = rotX;
+        this.defaultRotY = rotY;
+        this.defaultRotZ = rotZ;
+
         updateCamera();
 	}
 	
@@ -51,6 +65,18 @@ public class OrbitCamera implements Camera
 		
 		return mdl;
 	}
+
+    @Override
+    public Matrix4 getInverseMatrix(double scale)
+    {
+        Matrix4 mdl = Matrix4.getScaleMatrix(1.0/scale);
+        mdl = Matrix4.getTranslationMatrix(new Vector3(0,0,distance)).multiply(mdl);
+        mdl = Matrix4.getRotationZ(getRotZ() / -180.0 * Math.PI).multiply(mdl);
+        mdl = Matrix4.getRotationX(getRotX() / -180.0 * Math.PI).multiply(mdl);
+        mdl = Matrix4.getRotationY(getRotY() / -180.0 * Math.PI).multiply(mdl);
+        mdl = Matrix4.getTranslationMatrix(lookAt).multiply(mdl);
+        return mdl;
+    }
 	
 	@Override
 	public Matrix4 getSkybox(double scale)
@@ -167,4 +193,14 @@ public class OrbitCamera implements Camera
 		newCamera.setZ(Math.min(-10, newCamera.getZ()));
 		setCameraPos(newCamera);*/
 	}
+
+    @Override
+    public void reset()
+    {
+        this.setCameraPos(defaultLookAt.add(new Vector3(0, 0, 0))); //Clone default
+        this.setDistance(defaultDistance);
+        this.setRotX(defaultRotX);
+        this.setRotY(defaultRotY);
+        this.setRotZ(defaultRotZ);
+    }
 }
