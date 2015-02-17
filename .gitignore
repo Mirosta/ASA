@@ -6,3 +6,4 @@ ASA.iml
 asa*.xml
 module_asa*.xml
 asa*.properties
+/target
