@@ -1,24 +1,15 @@
 package com.tw10g12.Draw.Engine;
 
-import com.ASA.Util;
-import com.jogamp.graph.curve.Region;
-import com.jogamp.graph.curve.opengl.GLRegion;
 import com.jogamp.graph.curve.opengl.TextRenderer;
 import com.jogamp.graph.font.Font;
 import com.jogamp.graph.font.FontFactory;
-import com.jogamp.graph.geom.Triangle;
-import com.jogamp.graph.geom.Vertex;
 import com.jogamp.opengl.math.geom.AABBox;
-import com.sun.prism.ps.Shader;
 import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
 import com.tw10g12.Maths.Matrix4;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
-import javax.media.opengl.GL2;
-import javax.media.opengl.GL3;
 import javax.media.opengl.GL3;
 import javax.media.opengl.fixedfunc.GLMatrixFunc;
 import javax.media.opengl.glu.GLU;
@@ -28,8 +19,6 @@ import com.jogamp.opengl.util.texture.Texture;
 import com.tw10g12.Maths.Vector2;
 import com.tw10g12.Maths.Vector3;
 import com.tw10g12.Maths.Vector4;
-import jogamp.graph.curve.opengl.TextRendererImpl01;
-import jogamp.graph.curve.text.GlyphString;
 
 @SuppressWarnings(value = { "unused" })
 public class DrawTools

@@ -10,8 +10,13 @@ public class Ray3
 
     public Ray3(Vector3 rayStart, Vector3 rayDir)
     {
+        this(rayStart, rayDir, false);
+    }
+
+    public Ray3(Vector3 rayStart, Vector3 rayDir, boolean normaliseDirection)
+    {
         this.rayStart = rayStart;
-        this.rayDir = rayDir.normalise();
+        this.rayDir = (normaliseDirection ? rayDir.normalise() : rayDir);
     }
 
     public Vector3 getRayStart()
