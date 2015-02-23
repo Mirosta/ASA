@@ -17,4 +17,11 @@ extends UnitSpec
         ray.getPointAlongRay(-1.25) should matchVector (8.75, 8.75, 8.75)
     }
 
+    "A Ray3" should "provide a way to normalise the direction" in
+    {
+        val ray: Ray3 = new Ray3(new Vector3(10,10,10), new Vector3(1,1,1), true)
+        val ray2: Ray3 = new Ray3(new Vector3(10,10,10), new Vector3(1,1,1), false)
+        ray.getRayDir.length() should be (1.0)
+        ray2.getRayDir.lengthSquared() should be (3.0)
+    }
 }
