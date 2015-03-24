@@ -62,6 +62,10 @@ abstract class DrawPanelEventHandler extends GLEventListener with MouseMotionLis
         {
             reset()
         }
+        if(e.getButton == MouseEvent.BUTTON1 && e.getClickCount == 2)
+        {
+            camera.doZoomAction(-10)
+        }
     }
 
     override def mouseEntered(e: MouseEvent): Unit = {}
