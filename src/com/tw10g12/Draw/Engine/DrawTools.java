@@ -3,6 +3,7 @@ package com.tw10g12.Draw.Engine;
 import com.jogamp.graph.curve.opengl.TextRenderer;
 import com.jogamp.graph.font.Font;
 import com.jogamp.graph.font.FontFactory;
+import com.jogamp.graph.font.FontSet;
 import com.jogamp.opengl.math.geom.AABBox;
 import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
 import com.tw10g12.Maths.Matrix4;
@@ -563,7 +564,8 @@ public class DrawTools
         {
             try
             {
-                font = FontFactory.get(FontFactory.JAVA).getDefault();
+                FontSet fontSet = FontFactory.get(FontFactory.JAVA);
+                font = fontSet.get(0, 3);
             }
             catch (IOException ex)
             {
