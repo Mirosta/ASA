@@ -1,7 +1,7 @@
 package com.tw10g12.ASA.Controller
 
 import com.tw10g12.ASA.Debug.Profiler
-import com.tw10g12.ASA.Model.{Simulation, SimulationState}
+import com.tw10g12.ASA.Model.{Tile, Simulation, SimulationState}
 import com.tw10g12.ASA.Util
 
 import scala.actors.threadpool.Future
@@ -16,11 +16,13 @@ object SimulationState extends Enumeration
     val Stopped, Running, Paused = Value
 }
 
-class SimulationController(val simulation: Simulation)
+class SimulationController(var simulation: Simulation)
 {
-
     var future: Future = null
     var state = SimulationState.Stopped
+    var nextSimulation: Simulation = null
+    var nextTiles: (Tile, Vector[Tile]) = null
+    var simulationSpeed: Double = 1.0
 
     def beginSimulation(): Unit =
     {
@@ -43,18 +45,28 @@ class SimulationController(val simulation: Simulation)
 
     def resetSimulation(): Unit =
     {
+        moveToNextSimulation()
         simulation.reset()
     }
 
     def doSimulation(): Unit =
     {
-        while(!Thread.interrupted())
+        var done = false
+        while(!Thread.interrupted() && !done)
         {
             //Profiler.start()
             Profiler.profile("Begin profiling")
             simulation.tick()
             Profiler.profile("Tick complete")
             //Profiler.print()
+            try
+            {
+                if(simulationSpeed < 1) Thread.sleep(Math.ceil((1.0 / simulationSpeed) * 1.0).asInstanceOf[Long])
+            }
+            catch
+            {
+                case ex: InterruptedException => done = true
+            }
         }
         println("Interrupted")
     }
@@ -62,5 +74,36 @@ class SimulationController(val simulation: Simulation)
     def getSimulationState(): SimulationState =
     {
         return simulation.state
+    }
+
+    def setSimulation(nextSimulation: Simulation): Unit =
+    {
+        this.nextSimulation = nextSimulation
+        moveToNextSimulation()
+    }
+
+    def moveToNextSimulation(): Unit =
+    {
+        if((future == null || future.isDone) && nextSimulation != null)
+        {
+            simulation = nextSimulation
+            nextSimulation = null
+        }
+    }
+
+    def getTileTypes(): (Tile, Vector[Tile]) =
+    {
+        if(nextTiles == null) return simulation.getTileTypes()
+        else nextTiles
+    }
+
+    def setTileTypes(tileTypes: (Tile, Vector[Tile])): Unit =
+    {
+        nextTiles = tileTypes
+    }
+
+    def setSimulationSpeed(simulationSpeed: Double): Unit =
+    {
+        this.simulationSpeed = simulationSpeed
     }
 }
