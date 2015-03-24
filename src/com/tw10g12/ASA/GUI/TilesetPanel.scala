@@ -72,6 +72,7 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
         tileViewer.removeAll()
         setupTile(tiles._1, true)
         tiles._2.map(tile => setupTile(tile, false))
+        tileViewer.repaint()
     }
 
     def getSeedBorder(): Border = new LineBorder(Color.GREEN)
@@ -143,7 +144,7 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
             {
                 RenderMain.before(drawTools, camera, new Colour(0.0f, 0.0f, 0.0f, 0.0f))
                 RenderATAMTile.renderTile(currentTile, 6, drawTools)
-                RenderATAMTile.afterRender(currentTile, currentTile.getPosition, 6, drawTools)
+                RenderATAMTile.afterRender(currentTile, currentTile.getPosition, 6, false, null, drawTools)
                 RenderMain.after(drawTools)
 
                 currentTileIcon = new AWTGLReadBufferUtil(drawable.getGLProfile(), true).readPixelsToBufferedImage(drawable.getGL(), 0, 0, tileIconSize, tileIconSize, true)
