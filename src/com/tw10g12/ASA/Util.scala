@@ -1,21 +1,18 @@
 package com.tw10g12.ASA
 
-import java.awt.{Component, Container, GridBagConstraints, Insets}
-import javax.media.opengl.fixedfunc.GLMatrixFunc
+import java.awt.{Color, Component, Container, GridBagConstraints, Insets}
 import javax.media.opengl.glu.GLU
 import javax.media.opengl.{GL3, GLProfile}
 
-import com.jogamp.graph.curve.opengl.RenderState
-import com.jogamp.graph.geom.Vertex
-import com.jogamp.graph.geom.Vertex.Factory
-import com.jogamp.graph.geom.opengl.SVertex
-import com.jogamp.opengl.util.PMVMatrix
 import com.jogamp.opengl.util.gl2.GLUT
-import com.jogamp.opengl.util.glsl.{ShaderProgram, ShaderState}
-import com.tw10g12.Draw.Engine.{DrawTools, ShaderLoader}
+import com.tw10g12.ASA.Model.JSON.JSONTileFactory
+import com.tw10g12.ASA.Model.Tile
+import com.tw10g12.Draw.Engine.{Colour, DrawTools, ShaderLoader}
 import com.tw10g12.Maths.Vector3
+import org.json.{JSONArray, JSONObject}
 
 import scala.actors.threadpool.Executors
+import scala.collection.mutable
 
 /**
  * Created by Tom on 20/10/2014.
@@ -35,6 +32,18 @@ object Util
             }
         }
 
+    }
+
+    def convertColor(color: Color): Colour =
+    {
+        val c = new Colour(color.getRed, color.getGreen, color.getBlue, color.getAlpha)
+        return c
+    }
+
+    def convertColour(colour: Colour): Color =
+    {
+        val c = new Color(colour.getR,colour.getG,colour.getB, colour.getA)
+        return c
     }
 
     def orientationToVector(orientation: Int): Vector3 =
@@ -99,6 +108,79 @@ object Util
         }
     }
 
+    object IOUtil
+    {
+        def tilesetToJSON(tileset: (Tile, List[Tile])): JSONObject =
+        {
+            val outputObj = new JSONObject()
+            outputObj.put("seed", tileset._1.toJSON(new JSONObject()))
+            outputObj.put("tiles", new JSONArray(tileset._2.map(tile => tile.toJSON(new JSONObject())).toArray))
+            return outputObj
+        }
+
+        def JSONtoTileset(serialized: JSONObject): (Tile, List[Tile]) =
+        {
+            val seed: Tile = JSONTileFactory.createTile(serialized.getJSONObject("seed"))
+            val tiles: List[Tile] = JSONArrayToArray[JSONObject](serialized.getJSONArray("tiles")).map(serializedTile => JSONTileFactory.createTile(serializedTile)).toList
+
+            return (seed, tiles)
+        }
+
+        def colourToJSON(colour: Colour): JSONObject =
+        {
+            val outputObj = new JSONObject()
+            outputObj.put("r", colour.getR)
+            outputObj.put("g", colour.getG)
+            outputObj.put("b", colour.getB)
+            outputObj.put("a", colour.getA)
+            return outputObj
+        }
+
+        def JSONToColour(inputObj: JSONObject): Colour =
+        {
+            val r: Float = if(inputObj.has("r")) inputObj.getDouble("r").asInstanceOf[Float] else 0
+            val g: Float = if(inputObj.has("g")) inputObj.getDouble("g").asInstanceOf[Float] else 0
+            val b: Float = if(inputObj.has("b")) inputObj.getDouble("b").asInstanceOf[Float] else 0
+            val a: Float = if(inputObj.has("a")) inputObj.getDouble("a").asInstanceOf[Float] else 0
+
+            return new Colour(r,g,b,a)
+        }
+
+        def vector3ToJSON(vec: Vector3): JSONObject =
+        {
+            val outputObj = new JSONObject()
+
+            outputObj.put("x", vec.getX)
+            outputObj.put("y", vec.getY)
+            outputObj.put("z", vec.getZ)
+
+            return outputObj
+        }
+
+        def JSONToVector3(inputObj: JSONObject): Vector3 =
+        {
+            val x: Double = if(inputObj.has("z")) inputObj.getDouble("x") else 0
+            val y: Double = if(inputObj.has("y")) inputObj.getDouble("y") else 0
+            val z: Double    = if(inputObj.has("z")) inputObj.getDouble("z") else 0
+
+            return new Vector3(x, y, z)
+        }
+
+        def JSONMixedArrayToArray(array: JSONArray): mutable.MutableList[AnyRef] =
+        {
+            val outputArr = new mutable.MutableList[AnyRef]()
+            (0 until array.length()).map(i => outputArr += array.get(i))
+            return outputArr
+        }
+
+        def JSONArrayToArray[T](array: JSONArray): mutable.MutableList[T] =
+        {
+            val outputArr: mutable.MutableList[T] = new mutable.MutableList[T]()
+            (0 until array.length()).map(i => outputArr += (if(array.get(i) == null) null.asInstanceOf[T] else array.get(i).asInstanceOf[T]))
+            return outputArr
+        }
+    }
+
 
 
     def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double, anchor: Int, fill: Int, insets: Insets, iPadX: Int, iPadY: Int): Unit =
@@ -111,6 +193,16 @@ object Util
         addToGridBag(c, owner, gridX, gridY, 0.0, 0.0)
     }
 
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, gridWidth, gridHeight, weightX, weightY, 0, 0)
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double, iPadX: Int, iPadY: Int): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, gridWidth, gridHeight, weightX, weightY, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0,0,0,0), iPadX, iPadY)
+    }
+
     def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, weightX: Double, weightY: Double): Unit =
     {
         addToGridBag(c, owner, gridX, gridY, weightX, weightY, new Insets(0,0,0,0))
@@ -118,7 +210,12 @@ object Util
 
     def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, weightX: Double, weightY: Double, insets: Insets): Unit =
     {
-        addToGridBag(c, owner, gridX, gridY, 1, 1, weightX, weightY, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insets, 0, 0)
+        addToGridBag(c, owner, gridX, gridY, 1, 1, weightX, weightY, insets)
+    }
+
+    def addToGridBag(c: Component, owner: Container, gridX: Int, gridY: Int, gridWidth: Int, gridHeight: Int, weightX: Double, weightY: Double, insets: Insets): Unit =
+    {
+        addToGridBag(c, owner, gridX, gridY, gridWidth, gridHeight, weightX, weightY, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insets, 0, 0)
     }
 
 }
