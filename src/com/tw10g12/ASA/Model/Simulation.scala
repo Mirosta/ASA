@@ -10,8 +10,10 @@ import scala.util.Random
 class Simulation(startingTile: Tile, tileTypes: Vector[Tile])
 {
 
-    var state: SimulationState = new SimulationState(startingTile, tileTypes)
+    var state: SimulationState = null
     val rnd = new Random()
+
+    reset()
 
     def tick(): Unit =
     {

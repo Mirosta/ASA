@@ -2,7 +2,7 @@ package com.tw10g12.ASA.Model
 
 import com.tw10g12.ASA.Debug.Profiler
 import com.tw10g12.ASA.Util
-import com.tw10g12.Maths.{Vector2, Vector3}
+import com.tw10g12.Maths.Vector3
 
 import scala.util.Random
 
@@ -38,9 +38,15 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
 
     def calculateMonteCarloChances(position: Vector3, tiles: Map[Vector3, Tile]): List[(Int, Double)] =
     {
-        val adjacentTiles:Vector[(Tile, Int)] = getFullAdjacents(position, tiles)
-        val validTileTypes = tileTypes.filter(_.canBind(adjacentTiles))
+        if(position == null) return List[(Int, Double)]()
+        val adjacentTiles: Vector[(Tile, Int)] = getFullAdjacents(position, tiles)
+        val validTileTypes = tileTypes.filter(tile => filterTile(tile, adjacentTiles))
         return validTileTypes.map(tile => (tile.typeID, validTileTypes.length.asInstanceOf[Double])).toList
+    }
+
+    def filterTile(tile: Tile, adjacentTiles: Vector[(Tile, Int)]): Boolean =
+    {
+        return tile.canBind(adjacentTiles)
     }
 
     def getTileAt(position: Vector3, tiles: Map[Vector3, Tile]): Tile =
@@ -53,14 +59,14 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
     {
         Profiler.profile("Starting adjacency calculation")
         val edgeTiles: Map[Vector3, Tile] = calculateEdgeTiles()
-        val adjacentTiles: Set[Vector3] = edgeTiles.par.flatMap(tile => getEmptyAdjacents(tile._2)).seq.toSet[Vector3]
+        val adjacentTiles: Set[Vector3] = edgeTiles.par.flatMap(tile => getEmptyAdjacents(tile._2, tiles)).seq.toSet[Vector3]
         Profiler.profile("Completed flat map, calculating monte carlo chances for " + adjacentTiles.size + " tiles")
         val retVal = adjacentTiles.toList.par.map(position => position -> calculateMonteCarloChances(position, tiles)).filter(_._2.length > 0).seq.toMap
         Profiler.profile("Finished adjacency calculation")
         return retVal
     }
 
-    def getEmptyAdjacents(tile: Tile): List[Vector3] =
+    def getEmptyAdjacents(tile: Tile, tiles: Map[Vector3, Tile]): List[Vector3] =
     {
         val filteredGlues = tile.glues.filter(glue => !(glue == null || glue.isBound))
         return filteredGlues.map(glue => tile.getPosition.add(Util.orientationToVector(glue.orientation))).toList
@@ -68,6 +74,7 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
 
     def getFullAdjacents(position: Vector3, tiles: Map[Vector3, Tile]): Vector[(Tile, Int)] =
     {
+        if(position == null) return Vector[(Tile, Int)]()
         return (0 until 4).map(x => (getTileAt(position.add(Util.orientationToVector(x)), tiles), x)).filter(_._1 != null).toVector
     }
 
@@ -79,10 +86,12 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
         val adjacency = adjacencies.toList(nextTile)
         val tileTypeIDs = adjacency._2
         val rndNo = rnd.nextDouble()
+
         val tileType = getTileType(rndNo, tileTypeIDs)
         Profiler.profile("Got tile type")
         val fullAdjacents: Vector[(Tile, Int)] = getFullAdjacents(adjacency._1, tiles)
         val adjacentTiles:Set[Vector3] = fullAdjacents.map(pair => pair._1.getPosition).toSet
+
         Profiler.profile("Got adjacent tiles")
         //println("Tile Type: " + tileType)
         if(tileType == -1)
@@ -93,11 +102,11 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
         val tile = tileTypes(tileType)
         val newTile: Tile = tile.clone(adjacency._1, fullAdjacents.map(pair => pair._2))
         Profiler.profile("Cloned new tile")
-        val newTuples: List[(Vector3, Tile)] = (newTile :: adjacentTiles.toList.map(pos => getTileAt(pos, tiles).clone(newTile.getPosition))).map(tile => (tile.getPosition, tile));
+        val newTuples: List[(Vector3, Tile)] = (newTile :: adjacentTiles.toList.map(pos => getTileAt(pos, tiles).clone(newTile.getPosition, true))).map(tile => (tile.getPosition, tile));
         Profiler.profile("Got tiles to be updated")
         val newTiles = tiles ++ newTuples
         Profiler.profile("Cloned full tile set")
-        val newAdjacentTiles = getEmptyAdjacents(newTile).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(_._2.length > 0)
+        val newAdjacentTiles = getEmptyAdjacents(newTile, tiles).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(_._2.length > 0)
         val newAdjacencies = (adjacencies - newTile.getPosition) ++ newAdjacentTiles
         Profiler.profile("Cloned and updated adjacencies")
         return new SimulationState(newTiles, tileTypes, newAdjacencies)
@@ -149,7 +158,7 @@ class SimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile]
     def getRetTile(pos: Vector3, curRow: List[Tile], newTile: Tile, adjacentTiles: Set[Vector3] ) : Tile =
     {
         if(pos.equals(newTile.getPosition)) return newTile //Is current pos the actual tile?
-        else if(adjacentTiles.contains(pos)) return curRow.head.clone(newTile.getPosition) //Is the current pos an adjacent tile
+        else if(adjacentTiles.contains(pos)) return curRow.head.clone(newTile.getPosition, true) //Is the current pos an adjacent tile
         else return curRow.head //Otherwise no state change
     }
 
