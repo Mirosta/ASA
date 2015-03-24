@@ -5,6 +5,7 @@ import javax.swing.JPanel
 
 import com.tw10g12.ASA.Controller.{TilesetPanelController, SimulationController}
 import com.tw10g12.ASA.GUI.DrawPanel.{DrawPanelEventHandler, SimulationDrawPanelEventHandler}
+import com.tw10g12.ASA.Model.Tile
 import com.tw10g12.ASA.Util._
 /**
  * Created by Tom on 20/10/2014.
@@ -14,6 +15,8 @@ class SimulationWindow(val simulationController: SimulationController) extends A
     val CARD_TILE_EDITOR = "tile"
     val CARD_SIMULATION = "simulation"
     val CARD_SETTINGS = "settings"
+
+    var tilesetPanel: TilesetPanel = null
 
     override def setupMenuItems(): Unit =
     {
@@ -36,7 +39,7 @@ class SimulationWindow(val simulationController: SimulationController) extends A
 
     def setupTileSetPanel(): Unit =
     {
-        var tilesetPanel = new TilesetPanel(100, 2)
+        tilesetPanel = new TilesetPanel(100, 2)
         var tileTypes = simulationController.simulation.getTileTypes()
         tilesetPanel.setTiles((tileTypes._1, tileTypes._2.toList))
         tilesetPanel.setup("Edit Tileset", new TilesetPanelController(tilesetPanel))
@@ -64,5 +67,12 @@ class SimulationWindow(val simulationController: SimulationController) extends A
     override def getDrawPanelEventHandler(): DrawPanelEventHandler =
     {
         return new SimulationDrawPanelEventHandler(simulationController)
+    }
+
+    def setTileSet(tileSet: (Tile, scala.collection.immutable.List[Tile])): Unit =
+    {
+        tilesetPanel.setTiles(tileSet)
+        simulationController.setTileTypes((tileSet._1, tileSet._2.toVector))
+        repaint()
     }
 }
