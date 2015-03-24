@@ -1,6 +1,6 @@
 package com.tw10g12.ASA.GUI.Draw
 
-import com.tw10g12.ASA.Model.{SimulationState, Tile}
+import com.tw10g12.ASA.Model.{KTAMSimulationState, SimulationState, Tile}
 import com.tw10g12.Draw.Engine.{DrawTools, OrbitCamera}
 import com.tw10g12.Maths.Vector3
 
@@ -13,23 +13,27 @@ object RenderSimulation
     {
         val tileTypes: Map[Int,Map[Int, List[Tile]]] = foldTiles(simulationState, camera)
         drawTools.end()
-        tileTypes.map(keyValue => renderTileLevels(keyValue._1, keyValue._2, drawTools))
+        tileTypes.map(keyValue => renderTileLevels(keyValue._1, keyValue._2, simulationState, drawTools))
         drawTools.start()
     }
 
-    def renderTileLevels(tileType: Int, tileLevels: Map[Int, List[Tile]], drawTools: DrawTools): Unit =
+    def renderTileLevels(tileType: Int, tileLevels: Map[Int, List[Tile]], simulationState: SimulationState, drawTools: DrawTools): Unit =
     {
         if(tileLevels.size == 0) return
-        tileLevels.map(keyValue => renderTileType(tileType, RenderATAMTile.getLODFromIndex(keyValue._1), keyValue._2, drawTools))
+        tileLevels.map(keyValue => renderTileType(tileType, RenderATAMTile.getLODFromIndex(keyValue._1), keyValue._2, simulationState, drawTools))
     }
 
-    def renderTileType(tileType: Int, lod: Int, tiles: List[Tile], drawTools: DrawTools): Unit =
+    def renderTileType(tileType: Int, lod: Int, tiles: List[Tile], simulationState: SimulationState, drawTools: DrawTools): Unit =
     {
         if(tiles.length == 0) return
+        val isKTAM = simulationState.isInstanceOf[KTAMSimulationState]
+
         drawTools.start(true)
         RenderATAMTile.renderTile(tiles(0).clone(new Vector3(0,0,0), Vector()), lod, drawTools)
         tiles.map(tile => RenderATAMTile.instanceRender(tile, drawTools))
-        tiles.map(tile => RenderATAMTile.afterRender(tile, tile.getPosition, lod, drawTools))
+        drawTools.end()
+        drawTools.start(false)
+        tiles.map(tile => RenderATAMTile.afterRender(tile, tile.getPosition, lod, isKTAM && lod > 2, simulationState, drawTools))
         drawTools.end()
     }
 
