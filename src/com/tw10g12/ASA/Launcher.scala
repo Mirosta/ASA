@@ -1,6 +1,6 @@
 package com.tw10g12.ASA
 
-import com.tw10g12.ASA.Controller.SimulationController
+import com.tw10g12.ASA.Controller.{EditorController, SimulationController}
 import com.tw10g12.ASA.GUI.{EditorWindow, SimulationWindow}
 import com.tw10g12.ASA.Model.ATAM.{ATAMGlue, ATAMTile}
 import com.tw10g12.ASA.Model.{Simulation, Tile}
@@ -16,7 +16,7 @@ object Launcher
 {
     lazy val simulationController: SimulationController = new SimulationController(getSimulation())
     lazy val simulationWindow: SimulationWindow = new SimulationWindow(simulationController)
-    lazy val editorWindow: EditorWindow = new EditorWindow((null, List[Tile]()))
+    lazy val editorWindow: EditorWindow = new EditorWindow((null, List[Tile]()), new EditorController())
 
     def main(args:Array[String]): Unit =
     {
@@ -26,6 +26,7 @@ object Launcher
         simulationWindow.startSetup()
 
         editorWindow.setVisible(false)
+        editorWindow.setOwningSimulationWindow(simulationWindow)
         editorWindow.onSetup = null
         editorWindow.startSetup()
     }
