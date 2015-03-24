@@ -59,12 +59,12 @@ class EditorDrawPanelEventHandler(tileset: (Tile, List[Tile])) extends DrawPanel
             var tempTile: Tile = activeTile
             if(selected) tempTile = activeTile.asInstanceOf[ATAMTile].setColour(Colour.Orange)
             RenderATAMTile.renderTile(tempTile, lod, drawTools)
-            RenderATAMTile.afterRender(tempTile, tempTile.getPosition, lod, drawTools)
+            RenderATAMTile.afterRender(tempTile, tempTile.getPosition, lod, false, null, drawTools)
         }
         if(rayStart != null && rayDirection != null)
         {
             val normalDir = new Vector3(rayDirection.getX, rayDirection.getY, rayDirection.getZ).normalise()
-            drawTools.drawCuboid(rayStart.getXYZ.add(normalDir.multiply(100)), new Vector3(10,10,10), Array(Colour.Black))
+            //drawTools.drawCuboid(rayStart.getXYZ.add(normalDir.multiply(100)), new Vector3(10,10,10), Array(Colour.Black))
         }
     }
 
