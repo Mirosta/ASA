@@ -29,7 +29,7 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
     def calculateRemoveChance(tile: Tile, adjacentTiles: Vector[(Tile, Int)]): Double =
     {
         if(tile.typeID == -1) return 0
-        return Math.exp(-tile.getStrength(adjacentTiles) * backwardConstant)
+        return Math.pow(backwardConstant, -tile.getStrength(adjacentTiles))
     }
 
     override def filterTile(tile: Tile, adjacentTiles: Vector[(Tile, Int)]): Boolean =
@@ -39,7 +39,7 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
 
     override def nextState(rnd: Random): SimulationState =
     {
-        val weightedForwardChance = forwardConstant / (forwardConstant + backwardConstant)
+        val weightedForwardChance = 1.0 / forwardConstant
 
         if(rnd.nextDouble() > weightedForwardChance) return nextRemoveState(rnd)
         else return nextAddState(rnd)
@@ -88,19 +88,19 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
     def nextRemoveState(rnd: Random): KTAMSimulationState =
     {
         Profiler.profile("Begin next state")
-
-        val removeTilePos = getTileRemovePos(rnd, removeTileProbabilities).toSet
+        val connected = getConnected(tiles)
+        val removeTilePos = (getTileRemovePos(rnd, removeTileProbabilities) ++ tiles.filter(pair => !connected.contains(pair._1)).map(pair => pair._1)).toSet
         val fullRemoveAdjacents: List[(Vector3, Vector[(Tile, Int)])] = removeTilePos.toList.map(pos => (pos, getFullAdjacents(pos, tiles)))
         val removeAdjacentTiles:Map[Vector3, Vector3] = fullRemoveAdjacents.flatMap(pair => pair._2.map(innerPair => innerPair._1.getPosition -> pair._1)).toMap
-        val reduntantAdjacencies = removeTilePos.flatMap(pos => getEmptyAdjacents(tiles(pos), tiles)).toSet.filter(adjPos => !getFullAdjacents(adjPos, tiles).exists(tileOrientationPair => !removeTilePos.contains(tileOrientationPair._1.getPosition)))
         Profiler.profile("Got adjacent tiles")
 
         Profiler.profile("Cloned new tile")
-        val newTuples: List[(Vector3, Tile)] = removeAdjacentTiles.toList.map(pair => getTileAt(pair._1, tiles).clone(pair._2, false)).map(tile => (tile.getPosition, tile))
+        val newTuples: List[(Vector3, Tile)] = removeAdjacentTiles.filter(pair => !removeTilePos.contains(pair._2)).toList.map(pair => getTileAt(pair._1, tiles).clone(pair._2, false)).map(tile => (tile.getPosition, tile))
         Profiler.profile("Got tiles to be updated")
         val newTiles = tiles -- removeTilePos ++ newTuples
+        val reduntantAdjacencies = removeTilePos.flatMap(pos => getEmptyAdjacents(tiles(pos), newTiles)).toSet.filter(adjPos => !getFullAdjacents(adjPos, newTiles).exists(tileOrientationPair => !removeTilePos.contains(tileOrientationPair._1.getPosition)))
         Profiler.profile("Cloned full tile set")
-        val newAdjacentTiles = (removeTilePos).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(_._2.length > 0)
+        val newAdjacentTiles = (removeTilePos).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(pair => pair._2.length > 0 && getFullAdjacents(pair._1, newTiles).size > 0)
         val newAdjacencies = adjacencies -- reduntantAdjacencies ++ newAdjacentTiles
         val newRemoveTiles: Map[Vector3, Double] = newTiles.map(pair => calculateRemoveChances(pair._1, newTiles)).toMap
         val newRemoveTileProbabilities: Map[Vector3, Double] = removeTileProbabilities._2 -- removeTilePos ++ newRemoveTiles
@@ -112,23 +112,24 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
     def getTileRemovePos(rnd : Random, tileProbabilities: (Double, Map[Vector3, Double])): List[Vector3] =
     {
         if(tileProbabilities._2.size == 0) return List[Vector3]()
-        val totalProb = tileProbabilities._2.foldLeft(0.0)((sum, pair) => sum + pair._2)
-        if(totalProb <= 0) return List[Vector3]()
-        var randNum = rnd.nextDouble() * totalProb
         val chosenTile = tileProbabilities._2.foldLeft(null.asInstanceOf[Vector3])((curTile, pair) =>
         {
             if(curTile != null) curTile
-            else if(pair._2 > randNum)
+            else if(pair._2 >= rnd.nextDouble())
             {
                 pair._1
             }
             else
             {
-                randNum -= pair._2
                 curTile
             }
         })
-        return List[Vector3](chosenTile)//tileProbabilities._2.filter(pair => pair._2 > rnd.nextDouble()).map(pair => pair ._1).toList
+        if(chosenTile == null)
+        {
+            var a = 1
+            return List[Vector3]()
+        }
+        return tileProbabilities._2.filter(pair => rnd.nextDouble() < pair._2).map(pair => pair._1).toList //tileProbabilities._2.filter(pair => pair._2 > rnd.nextDouble()).map(pair => pair ._1).toList
     }
 
     override def getEmptyAdjacents(tile: Tile, tiles: Map[Vector3, Tile]): List[Vector3] =
@@ -136,7 +137,7 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
         return (0 until 4).map(orientation => tile.getPosition.add(Util.orientationToVector(orientation))).filter(pos => !tiles.contains(pos)).toList
     }
 
-    def getConnected(tilePos: Vector3, tiles: Map[Vector3, Tile]): Set[Vector3] =
+    def getConnected(tiles: Map[Vector3, Tile]): Set[Vector3] =
     {
         val visited: mutable.Set[Vector3] = new mutable.HashSet[Vector3]()
         val edge: mutable.Stack[Vector3] = new mutable.Stack[Vector3]()
@@ -150,7 +151,7 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
             (0 to 4).map(orientation =>
             {
                 val newPos = curPos.add(Util.orientationToVector(orientation))
-                if(!visited.contains(newPos))
+                if(!visited.contains(newPos) && tiles.contains(newPos))
                 {
                     visited.add(newPos)
                     edge.push(newPos)
