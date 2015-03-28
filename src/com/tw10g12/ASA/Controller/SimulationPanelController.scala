@@ -89,8 +89,8 @@ class SimulationPanelController(simulation: SimulationController, simulationPane
 
     def createKTAM(tileTypes: (Tile, Vector[Tile])): Simulation =
     {
-        val reverseConstant = if(simulationPanel.reverseConstantInput.isValid()) 1.0 / simulationPanel.reverseConstantInput.getText.toDouble else 0.0
-        val forwardConstant = if(simulationPanel.forwardConstantInput.isValid()) 1.0 / simulationPanel.forwardConstantInput.getText.toDouble else 0.0
+        val reverseConstant = if(simulationPanel.reverseConstantInput.isValid()) simulationPanel.reverseConstantInput.getText.toDouble else 0.0
+        val forwardConstant = if(simulationPanel.forwardConstantInput.isValid()) simulationPanel.forwardConstantInput.getText.toDouble else 0.0
         return new KTAMSimulation(tileTypes._1, tileTypes._2, reverseConstant, forwardConstant)
     }
 
