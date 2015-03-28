@@ -9,6 +9,7 @@ import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
 import com.tw10g12.Maths.Matrix4;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.media.opengl.GL3;
@@ -47,6 +48,8 @@ public class DrawTools
     private TextRenderer textRenderer = null;
     private Font font = null;
 
+    private int lineVBO = -1;
+
     public DrawTools(GL3 glInstance, GLU glu, GLUT glut, List<ShaderLoader> shaders)
     {
         this.gl3 = glInstance;
@@ -55,6 +58,7 @@ public class DrawTools
 
         tessellator = new Tessellator(glInstance, shaders);
         tessellator.addNewInstanceVBO();
+        lineVBO = tessellator.addNewVBO();
     }
 
     public void clear(Colour clearColour)
@@ -198,11 +202,11 @@ public class DrawTools
 
         tessellator.addIndex((short)vertexIndices[0]);
         tessellator.addIndex((short)vertexIndices[1]);
-        tessellator.addIndex((short)vertexIndices[3]);
+        tessellator.addIndex((short) vertexIndices[3]);
 
         tessellator.addIndex((short)vertexIndices[0]);
-        tessellator.addIndex((short)vertexIndices[3]);
-        tessellator.addIndex((short)vertexIndices[2]);
+        tessellator.addIndex((short) vertexIndices[3]);
+        tessellator.addIndex((short) vertexIndices[2]);
     }
 
     public void drawUnsortedTriangle(Vector3 p1, Vector3 p2, Vector3 p3, Colour fill)
@@ -246,7 +250,7 @@ public class DrawTools
 
         tex.bind(getGL3());
         tex.enable(getGL3());
-        drawTexturedTriangle(p1, p2, p3,new Vector2[]{new Vector2(0,1), new Vector2(1,0), new Vector2(0,0)}, fill);
+        drawTexturedTriangle(p1, p2, p3, new Vector2[]{new Vector2(0, 1), new Vector2(1, 0), new Vector2(0, 0)}, fill);
         tex.disable(getGL3());
 
         tessellator.draw();
@@ -353,17 +357,17 @@ public class DrawTools
 
     public void drawTexturedQuad(Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight, Vector2 topLeftUV, Vector2 bottomRightUV, Texture tex, Colour fill)
     {
-        drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, topLeftUV, topLeftUV.add(bottomRightUV.subtract(topLeftUV).multiply(new Vector2(1,0))), topLeftUV.add(bottomRightUV.subtract(topLeftUV).multiply(new Vector2(0,1))), bottomRightUV, tex, fill);
+        drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, topLeftUV, topLeftUV.add(bottomRightUV.subtract(topLeftUV).multiply(new Vector2(1, 0))), topLeftUV.add(bottomRightUV.subtract(topLeftUV).multiply(new Vector2(0, 1))), bottomRightUV, tex, fill);
     }
 
     public void drawTexturedQuad(Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight, Texture tex, Colour fill)
     {
-        drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, new Vector2(0,0), new Vector2(1,0),new Vector2(0,1), new Vector2(1,1), tex, fill);
+        drawTexturedQuad(topLeft, topRight, bottomLeft, bottomRight, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1), tex, fill);
     }
 
     public void drawText(String text, Vector3 bottomLeft, double size, Colour col, double lineSize, double rotX, double rotY, double rotZ)
     {
-        drawText(text, bottomLeft, size, col, lineSize, new Vector3(0,0,0), rotX, rotY, rotZ);
+        drawText(text, bottomLeft, size, col, lineSize, new Vector3(0, 0, 0), rotX, rotY, rotZ);
     }
 
     public void drawText(String text, Vector3 bottomLeft, double size, Colour col, double lineSize, Vector3 origin, double rotX, double rotY, double rotZ)
@@ -379,7 +383,7 @@ public class DrawTools
         textRenderer.translate(getGL3(), (float) bottomLeft.getX(), (float) bottomLeft.getY(), (float) bottomLeft.getZ());
         textRenderer.rotate(getGL3(), (float) rotX, 1, 0, 0);
         textRenderer.rotate(getGL3(), (float) rotY, 0, 0, 1);
-        textRenderer.scale(getGL3(), (float)size, (float)size, (float)size);
+        textRenderer.scale(getGL3(), (float) size, (float) size, (float) size);
         textRenderer.translate(getGL3(), (float)-origin.getX() * stringSize.getWidth(), (float)-origin.getY() * stringSize.getHeight() * 0.5f, (float)-origin.getZ());
         textRenderer.drawString3D(getGL3(), getFont(), text, new float[]{1, 1}, 1, new int[]{12, 12});
         textRenderer.enable(getGL3(), false);
@@ -458,7 +462,7 @@ public class DrawTools
 
     public void drawArrow(Vector3 start, Vector3 end, Vector3 up, boolean startArrow, boolean endArrow, double lineWidth, double arrowSize, Colour colour)
     {
-        drawArrow(start, end, up, startArrow, endArrow, lineWidth, arrowSize,arrowSize, colour);
+        drawArrow(start, end, up, startArrow, endArrow, lineWidth, arrowSize, arrowSize, colour);
     }
 
     public void drawArrow(Vector3 start, Vector3 end, Vector3 up, boolean startArrow, boolean endArrow, double lineWidth, double startArrowSize,double endArrowSize, Colour colour)
@@ -531,7 +535,16 @@ public class DrawTools
         if(!hasStarted) throw new DrawToolsStateException("Not yet started, nothing to end!");
 
         if(instanced) tessellator.drawInstanced();
-        else tessellator.draw();
+        else
+        {
+            tessellator.draw();
+            if(lineVBO > -1)
+            {
+                tessellator.setCurrentVBO(lineVBO);
+                tessellator.drawLines(GL3.GL_LINES);
+                tessellator.setCurrentVBO(0);
+            }
+        }
 
         hasStarted = false;
         instanced = false;
@@ -600,7 +613,7 @@ public class DrawTools
 
     public double billboardTextWidth(String text, double screenFactor, Vector3 bottomLeft)
     {
-        Vector4 translatePos = modelView.multiply(new Vector4(bottomLeft.getX(),bottomLeft.getY(),bottomLeft.getZ(),1));
+        Vector4 translatePos = modelView.multiply(new Vector4(bottomLeft.getX(), bottomLeft.getY(), bottomLeft.getZ(), 1));
         double scale = (-translatePos.getZ())/(100*screenFactor);
         double width = 0;
         for(int i =0; i < text.length(); i++)
@@ -639,11 +652,97 @@ public class DrawTools
 
     public void drawQuad(Vector3 position, Vector3 origin, Vector3 size, Colour fill)
     {
-        Vector3 topLeft = position.add(size.multiply(new Vector3(1,1,1).subtract(origin)));
+        Vector3 topLeft = position.add(size.multiply(new Vector3(1, 1, 1).subtract(origin)));
         Vector3 topRight = position.add(size.multiply(new Vector3(0,1,0).subtract(origin)));
-        Vector3 bottomLeft = position.add(size.multiply(new Vector3(1,0,1).subtract(origin)));
-        Vector3 bottomRight = position.add(size.multiply(new Vector3(0,0,0).subtract(origin)));
+        Vector3 bottomLeft = position.add(size.multiply(new Vector3(1, 0, 1).subtract(origin)));
+        Vector3 bottomRight = position.add(size.multiply(new Vector3(0, 0, 0).subtract(origin)));
         drawQuad(topLeft, topRight, bottomLeft, bottomRight, fill);
+    }
+
+    public void drawBezierCurve(Vector3 start, Vector3 end, Vector3 startControl, Vector3 endControl, int detail, Colour lineColour)
+    {
+        tessellator.setCurrentVBO(lineVBO);
+        Vector3 prevPoint = calculateBezierPoint(0.0, start, end, startControl, endControl);
+        int prevPointIndex = tessellator.addVertex(prevPoint, lineColour);
+
+        for(int i = 1; i <= detail; i++)
+        {
+            float progress = (float)i / (float) detail;
+
+            Vector3 nextPoint = calculateBezierPoint(progress, start, end, startControl, endControl);
+            int nextPointIndex = tessellator.addVertex(nextPoint, lineColour);
+
+            tessellator.addIndex(prevPointIndex);
+            tessellator.addIndex(nextPointIndex);
+
+            prevPointIndex = nextPointIndex;
+        }
+        tessellator.setCurrentVBO(0);
+    }
+
+    //http://devmag.org.za/2011/04/05/bzier-curves-a-tutorial/
+    public Vector3 calculateBezierPoint(double progress, Vector3 start, Vector3 end, Vector3 startControl, Vector3 endControl)
+    {
+        double reverseProgress = 1.0 - progress;
+        double progressSqr = progress*progress;
+        double reverseProgressSqr = reverseProgress*reverseProgress;
+        double reverseProgressCubed = reverseProgressSqr * reverseProgress;
+        double progressCubed = progressSqr * progress;
+
+        Vector3 pos = start.multiply(reverseProgressCubed); //first term
+        pos = pos.add(startControl.multiply(3.0 * reverseProgressSqr * progress)); //second term
+        pos = pos.add(endControl.multiply(3.0 * reverseProgress * progressSqr)); //third term
+        pos = pos.add(end.multiply(progressCubed)); //fourth term
+
+        return pos;
+    }
+
+    public void drawCircle(Vector3 position, Vector3 up, Vector3 right, double radius, int levelOfDetail, Colour fill)
+    {
+        List<Vector3> lineLoop = new ArrayList<Vector3>();
+        generateDiamondLineLoop(lineLoop, position, up, right, radius);
+        for(int i = 0; i < levelOfDetail; i++)
+        {
+            segmentLineLoop(lineLoop, position, radius);
+        }
+
+        int centreIndex = tessellator.addVertex(position, fill);
+        int firstIndex = tessellator.addVertex(lineLoop.get(0), fill);
+        int lastIndex = firstIndex;
+        for(int i = 1; i < lineLoop.size(); i++)
+        {
+            int nextIndex = tessellator.addVertex(lineLoop.get(i), fill);
+            tessellator.addIndex(nextIndex);
+            tessellator.addIndex(centreIndex);
+            tessellator.addIndex(lastIndex);
+
+            lastIndex = nextIndex;
+        }
+        tessellator.addIndex(firstIndex);
+        tessellator.addIndex(centreIndex);
+        tessellator.addIndex(lastIndex);
+
+    }
+
+    private void segmentLineLoop(List<Vector3> lineLoop, Vector3 centre, double radius)
+    {
+        for(int i = 0; i < lineLoop.size(); i+=2)
+        {
+            int nextIndex = (i + 1) % lineLoop.size();
+            Vector3 nextPoint = (lineLoop.get(i).add(lineLoop.get(nextIndex))).multiply(0.5);
+            Vector3 direction = nextPoint.subtract(centre).normalise();
+            nextPoint = centre.add(direction.multiply(radius));
+            if(i == lineLoop.size() - 1) lineLoop.add(nextPoint);
+            else lineLoop.add(nextIndex, nextPoint);
+        }
+    }
+
+    private void generateDiamondLineLoop(List<Vector3> lineLoop, Vector3 position, Vector3 up, Vector3 right, double radius)
+    {
+        lineLoop.add(position.add(up.multiply(radius)));
+        lineLoop.add(position.add(right.multiply(radius)));
+        lineLoop.add(position.add(up.multiply(-radius)));
+        lineLoop.add(position.add(right.multiply(-radius)));
     }
 
     public void drawInstance(Vector3 position)

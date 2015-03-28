@@ -6,6 +6,7 @@ import java.util.List;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL3;
 
+import com.sun.prism.impl.VertexBuffer;
 import com.tw10g12.Draw.Engine.Exception.InvalidVertexBufferException;
 import com.tw10g12.Maths.Vector2;
 import com.tw10g12.Maths.Vector3;
@@ -67,7 +68,10 @@ public class Tessellator
 
     public void reset()
     {
-        vertexBuffers.get(currentVBO).reset();
+        for(VBO buffer : vertexBuffers)
+        {
+            buffer.reset();
+        }
     }
 
     private void setupClientState()
@@ -127,6 +131,25 @@ public class Tessellator
         cleanup();
     }
 
+    public void drawLines(int drawMode)
+    {
+        if(vertexBuffers.get(currentVBO).isEmpty()) return;
+        resizeBuffers();
+        flushBuffers();
+
+        vertexBuffers.get(currentVBO).bind();
+        setupClientState();
+        if(drawMode != GL3.GL_LINES && drawMode != GL3.GL_LINE_STRIP && drawMode != GL3.GL_LINE_LOOP) throw new RuntimeException("Draw mode must be a line mode");
+        gl3.glDrawElements(
+                drawMode,  /* mode */
+                vertexBuffers.get(currentVBO).getIndicesSize(),                  /* count */
+                GL2.GL_UNSIGNED_INT,  /* type */
+                0            /* element array buffer offset */
+        );
+
+        cleanup();
+    }
+
     private void cleanup()
     {
         //gl3.glUseProgram(0);
@@ -151,18 +174,22 @@ public class Tessellator
         this.currentVBO = currentVBO;
     }
 
-    public void addNewVBO()
+    public int addNewVBO()
     {
         VBO newVBO = new VBO(this.gl3);
         newVBO.setup();
         vertexBuffers.add(newVBO);
+
+        return vertexBuffers.size() - 1;
     }
 
-    public void addNewInstanceVBO()
+    public int addNewInstanceVBO()
     {
         InstanceVBO newVBO = new InstanceVBO(this.gl3);
         newVBO.setup();
         vertexBuffers.add(newVBO);
+
+        return vertexBuffers.size() - 1;
     }
 
     public ShaderLoader getCurrentShader()

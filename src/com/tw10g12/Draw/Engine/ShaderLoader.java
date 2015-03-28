@@ -22,6 +22,7 @@ public class ShaderLoader
 {
 	private static final int VertexShader = 0;
 	private static final int FragmentShader = 1;
+
 	private int shaderProgram;
 	private int[] shaders;
 	private String shaderLocation;
