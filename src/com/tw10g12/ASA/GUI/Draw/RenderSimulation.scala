@@ -1,7 +1,7 @@
 package com.tw10g12.ASA.GUI.Draw
 
 import com.tw10g12.ASA.Model.{KTAMSimulationState, SimulationState, Tile}
-import com.tw10g12.Draw.Engine.{DrawTools, OrbitCamera}
+import com.tw10g12.Draw.Engine.{Colour, DrawTools, OrbitCamera}
 import com.tw10g12.Maths.Vector3
 
 /**
@@ -14,7 +14,13 @@ object RenderSimulation
         val tileTypes: Map[Int,Map[Int, List[Tile]]] = foldTiles(simulationState, camera)
         drawTools.end()
         tileTypes.map(keyValue => renderTileLevels(keyValue._1, keyValue._2, simulationState, drawTools))
-        drawTools.start()
+        drawTools.start(false)
+        simulationState.adjacencies.map(pair => renderAdjacency(pair._1, drawTools))
+    }
+
+    def renderAdjacency(pos: Vector3, drawTools: DrawTools): Unit =
+    {
+        drawTools.drawCuboid(RenderATAMTile.getRenderPosition(pos).add(RenderATAMTile.tileSize.multiply(new Vector3(-0.5, 0.5, -0.5))), RenderATAMTile.tileSize, Array[Colour](Colour.Blue))
     }
 
     def renderTileLevels(tileType: Int, tileLevels: Map[Int, List[Tile]], simulationState: SimulationState, drawTools: DrawTools): Unit =
