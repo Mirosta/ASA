@@ -61,7 +61,7 @@ class SimulationController(var simulation: Simulation)
             //Profiler.print()
             try
             {
-                if(simulationSpeed < 1) Thread.sleep(Math.ceil((1.0 / simulationSpeed) * 1.0).asInstanceOf[Long])
+                if(simulationSpeed < 1) Thread.sleep(Math.ceil((1.0 / simulationSpeed) * 5.0).asInstanceOf[Long])
             }
             catch
             {
