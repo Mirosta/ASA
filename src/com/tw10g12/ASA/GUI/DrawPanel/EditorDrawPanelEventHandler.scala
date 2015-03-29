@@ -3,8 +3,9 @@ package com.tw10g12.ASA.GUI.DrawPanel
 import java.awt.event.MouseEvent
 import javax.media.opengl.GLAutoDrawable
 
-import com.tw10g12.ASA.GUI.Draw.{RenderATAMTile, RenderSimulation}
+import com.tw10g12.ASA.GUI.Draw.{RenderStateMachine, RenderATAMTile, RenderSimulation}
 import com.tw10g12.ASA.GUI.Interaction.Intersectable
+import com.tw10g12.ASA.Launcher
 import com.tw10g12.ASA.Model.ATAM.ATAMTile
 import com.tw10g12.ASA.Model.Tile
 import com.tw10g12.Draw.Engine.{Colour, Camera, OrbitCamera}
@@ -60,6 +61,10 @@ class EditorDrawPanelEventHandler(tileset: (Tile, List[Tile])) extends DrawPanel
             if(selected) tempTile = activeTile.asInstanceOf[ATAMTile].setColour(Colour.Orange)
             RenderATAMTile.renderTile(tempTile, lod, drawTools)
             RenderATAMTile.afterRender(tempTile, tempTile.getPosition, lod, false, null, drawTools)
+        }
+        else
+        {
+            RenderStateMachine.render(Launcher.editorWindow.stateMachine.stateNodes, Launcher.editorWindow.stateMachine, camera.asInstanceOf[OrbitCamera], drawTools)
         }
         if(rayStart != null && rayDirection != null)
         {

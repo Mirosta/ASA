@@ -2,14 +2,19 @@ package com.tw10g12.ASA.GUI
 
 import java.awt.event.WindowEvent
 import java.awt.font.TextAttribute
-import java.awt.{GridBagConstraints, Color, GridBagLayout, Insets}
+import java.awt.{Color, GridBagConstraints, GridBagLayout, Insets}
 import javax.swing._
 import javax.swing.border.LineBorder
 
 import com.tw10g12.ASA.Controller.{EditorController, EditorTilesetPanelController}
 import com.tw10g12.ASA.GUI.DrawPanel.{DrawPanelEventHandler, EditorDrawPanelEventHandler}
+import com.tw10g12.ASA.Model.StateMachine.GlueState.GlueState
+import com.tw10g12.ASA.Model.StateMachine.{StateMachine, StateNode, StateTransition}
 import com.tw10g12.ASA.Model.Tile
 import com.tw10g12.ASA.Util
+import com.tw10g12.Maths.Vector3
+
+import scala.util.Random
 
 /**
  * Created by Tom on 07/02/2015.
@@ -20,6 +25,18 @@ class EditorWindow(var tileset: (Tile, List[Tile]), val editorController: Editor
     val CARD_TILE_EDITOR = "tile"
     val CARD_TILE_OPTIONS = "tileSettings"
     val CARD_TILESET_OPTIONS = "tilesetSettings"
+
+    val stateMachine: StateMachine = createStateMachine()
+
+    def createStateMachine(): StateMachine =
+    {
+        val nodes: List[StateNode] = List[StateNode](new StateNode(Map[Int, GlueState](), new Vector3(0,0,0), "N1"), new StateNode(Map[Int, GlueState](), new Vector3(5, 0, 0), "N2"))
+        val transitions: List[StateTransition] = List[StateTransition](new StateTransition(nodes.head, nodes.tail.head, 1.0, new Vector3(1, 1, 0).normalise(), new Vector3(-1, 1, 0).normalise()))
+        nodes.head.setTransitions(Map[String, List[StateTransition]]("A" -> transitions))
+        nodes.tail.head.setTransitions(Map[String, List[StateTransition]]())
+        val stateMachine: StateMachine = new StateMachine(nodes.head, Map[Int, GlueState](), new Random(), nodes)
+        return stateMachine
+    }
 
     var tilesetPanel: TilesetPanel = null
     var activeTile: Tile = null
