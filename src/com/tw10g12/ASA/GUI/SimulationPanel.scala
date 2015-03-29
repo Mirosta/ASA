@@ -70,10 +70,10 @@ class SimulationPanel(simulation: SimulationController) extends JPanel(new GridB
 
         val forwardConstantLabel = new JLabel("Forward Constant:")
         forwardConstantInput = new JTextField("0")
-        forwardConstantInput.setInputVerifier(new DecimalValidator(this, forwardConstantInput, "Please enter a number", 4, 0, 1))
+        forwardConstantInput.setInputVerifier(new DecimalValidator(this, forwardConstantInput, "Please enter a number", 4, 0, 100))
         val reverseConstantLabel = new JLabel("Reverse Constant:")
         reverseConstantInput = new JTextField("0")
-        reverseConstantInput.setInputVerifier(new DecimalValidator(this, reverseConstantInput, "Please enter a number", 4, 0, 1))
+        reverseConstantInput.setInputVerifier(new DecimalValidator(this, reverseConstantInput, "Please enter a number", 4, 0, 100))
 
         forwardConstantInput.getDocument.addDocumentListener(controller.KTAMConstantsChanged)
         reverseConstantInput.getDocument.addDocumentListener(controller.KTAMConstantsChanged)
