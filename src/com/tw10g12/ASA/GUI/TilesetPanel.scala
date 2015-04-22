@@ -8,6 +8,7 @@ import javax.swing.border.{Border, LineBorder}
 
 import com.tw10g12.ASA.Controller.TilesetPanelController
 import com.tw10g12.ASA.GUI.Draw.{RenderATAMTile, RenderMain}
+import com.tw10g12.ASA.Model.StateMachine.StateMachine
 import com.tw10g12.ASA.Model.Tile
 import com.tw10g12.ASA.Util
 import com.jogamp.opengl.util.awt.AWTGLReadBufferUtil
@@ -25,6 +26,8 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
 
     var images: scala.collection.mutable.Map[Tile, BufferedImage] = new scala.collection.mutable.HashMap[Tile, BufferedImage]()
     var tiles: (Tile, List[Tile]) = (null, List[Tile]())
+    var stateMachines: Map[Tile, StateMachine] = Map()
+
     var tileViewer: JPanel = null
     lazy val drawable: GLAutoDrawable = setupOffscreenImage()
     var tileX = 0
@@ -45,7 +48,7 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
     def updateImageCache(): Unit =
     {
         val tileSet: Set[Tile] = Set[Tile](tiles._1) ++ tiles._2
-        images.filter(tileImage => tileSet.contains(tileImage._1))
+        images = images.filter(tileImage => tileSet.contains(tileImage._1))
     }
 
     def setup(buttonText: String, controller: TilesetPanelController): Unit =
@@ -104,7 +107,7 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
     {
         if(!images.contains(tile))
         {
-            images(tile) = renderTileImage(tile)
+            images.put(tile, renderTileImage(tile))
         }
         return images(tile)
     }
@@ -132,6 +135,8 @@ class TilesetPanel(tileIconSize: Int, noTilesX: Int) extends JPanel
             drawTools.setupPerspectiveProjection(drawable.getWidth, drawable.getHeight)
             gl3.glEnable(GL.GL_DEPTH_TEST)
             gl3.glDepthFunc(GL.GL_LESS)
+            gl3.glEnable(GL.GL_BLEND)
+            gl3.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         }
 
         override def display(glAutoDrawable: GLAutoDrawable): Unit =
