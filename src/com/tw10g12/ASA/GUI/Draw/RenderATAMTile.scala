@@ -1,7 +1,8 @@
 package com.tw10g12.ASA.GUI.Draw
 
 import com.tw10g12.ASA.GUI.Interaction.{AABBIntersectable, Intersectable}
-import com.tw10g12.ASA.Model.{SimulationState, Glue, Tile}
+import com.tw10g12.ASA.Model.StateMachine.GlueState
+import com.tw10g12.ASA.Model.{SMTAMSimulationState, SimulationState, Glue, Tile}
 import com.tw10g12.ASA.Util
 import com.tw10g12.Draw.Engine.{Colour, DrawTools}
 import com.tw10g12.Maths.Vector3
@@ -30,11 +31,18 @@ object RenderATAMTile
         if(lod > 2) tile.glues.map(glue => renderGlue(glue, position, lod, Colour.Black, 1, drawTools))
     }
 
+    def renderTileOutline(tilePos: Vector3, colour: Colour, drawTools: DrawTools): Unit =
+    {
+        val position = getRenderPosition(tilePos)
+        val size = filledTileSize
+        drawTools.drawCuboidOutline(position.add(size.multiply(new Vector3(-0.5, 0.5, -0.5))), size, Array(colour))
+    }
+
     def getIntersectables(tile: Tile, lod: Int): List[Intersectable] =
     {
         val position = getRenderPosition(tile.getPosition)
         val size = if (lod > 2) tileSize else filledTileSize
-        val mainIntersectable: Intersectable = new AABBIntersectable(position.add(size.multiply(new Vector3(-0.5, -0.5, -1.5))), size)
+        val mainIntersectable: Intersectable = new AABBIntersectable(position.add(size.multiply(new Vector3(-0.5, -0.5, -1.5))), size, tile)
         return mainIntersectable :: tile.glues.flatMap(glue => getGlueIntersectables(glue, position, lod)).toList
     }
 
@@ -47,7 +55,7 @@ object RenderATAMTile
         val glueWidth = 2 * glue.strength - 1
         val glueSize = glueDirection.multiply(glueSideSize).add(glueDirection.cross(new Vector3(0,0,1)).multiply(glueWidth)).add(new Vector3(0,0,tileDepth))
 
-        return List[Intersectable](new AABBIntersectable(newCenter.add(glueSize.multiply(new Vector3(-0.5, -0.5, -1.5))), glueSize))
+        return List[Intersectable](new AABBIntersectable(newCenter.add(glueSize.multiply(new Vector3(-0.5, -0.5, -1.5))), glueSize, glue.parent))
     }
 
     def instanceRender(tile: Tile, drawTools: DrawTools): Unit =
@@ -102,7 +110,19 @@ object RenderATAMTile
                         {
                             val newCenter = renderPosition.add(tileSize.multiply(0.5).add(new Vector3(glueSideSize, glueSideSize, tileDepth).multiply(0.5)).multiply(glueDirection))
                             val textCenter = newCenter.subtract(glueDirection.multiply(textOffset))
-                            drawTools.drawText(glue.label, textCenter, 1.5, Colour.Black, 2, new Vector3(0.5, 0.5, 0), 0, 0, 0)
+                            val glueState = if(simulationState.isInstanceOf[SMTAMSimulationState])
+                            {
+                                val sMTAMSimulationState = simulationState.asInstanceOf[SMTAMSimulationState]
+                                if(sMTAMSimulationState.stateMachineStates.contains(tile.getPosition))
+                                {
+                                    if(simulationState.asInstanceOf[SMTAMSimulationState].stateMachineStates(tile.getPosition).currentGlueStates.contains(glue.orientation)) simulationState.asInstanceOf[SMTAMSimulationState].stateMachineStates(tile.getPosition).currentGlueStates(glue.orientation)
+                                    else GlueState.Active
+                                }
+                                else GlueState.Active
+                            } else GlueState.Active
+                            val textColour = if(glueState == GlueState.Disabled) Colour.Red else if(glueState == GlueState.Inert) new Colour(0.7f, 0.7f, 0.7f) else Colour.Black
+
+                            drawTools.drawText(glue.label, textCenter, 1.5, textColour, 2, new Vector3(0.5, 0.5, 0), 0, 0, 0)
                         }
                     }
                 }
