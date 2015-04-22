@@ -12,7 +12,7 @@ import org.json.JSONObject
  */
 object JSONTileFactory
 {
-    val tileFactories: Map[String, JSONTileFactory] = Map[String, JSONTileFactory]("ATAMTile" -> new JSONATAMTileFactory())
+    val tileFactories: Map[String, JSONTileFactory] = Map[String, JSONTileFactory]("ATAMTile" -> new JSONATAMTileFactory(), "SMTAMTile" -> new JSONATAMTileFactory(), "KTAMTile" -> new JSONATAMTileFactory())
 
     def createTile(serialized: JSONObject): Tile =
     {

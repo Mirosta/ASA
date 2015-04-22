@@ -9,7 +9,7 @@ import org.json.JSONObject
  */
 object JSONGlueFactory
 {
-    val glueFactories: Map[String, JSONGlueFactory] = Map[String, JSONGlueFactory]("ATAMGlue" -> new ATAMJSONGlueFactory())
+    val glueFactories: Map[String, JSONGlueFactory] = Map[String, JSONGlueFactory]("ATAMGlue" -> new ATAMJSONGlueFactory(), "SMTAMGlue" -> new ATAMJSONGlueFactory(), "KTAMGlue" -> new ATAMJSONGlueFactory())
 
     def createGlue(serialized: JSONObject): Glue =
     {
