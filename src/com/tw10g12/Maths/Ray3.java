@@ -33,4 +33,15 @@ public class Ray3
     {
         return rayStart.add(rayDir.multiply(factor));
     }
+
+    public double getPointAlongRay(Vector3 pos)
+    {
+        Vector3 diffVector = pos.subtract(rayStart);
+        if(diffVector.lengthSquared() == 0) return 0;
+        double factor = Double.NaN;
+        if(diffVector.getX() > 0) factor = diffVector.getX() / rayDir.getX();
+        if(diffVector.getY() > 0) factor = diffVector.getY() / rayDir.getY();
+        if(diffVector.getZ() > 0) factor = diffVector.getZ() / rayDir.getZ();
+        return factor;
+    }
 }

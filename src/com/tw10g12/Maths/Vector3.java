@@ -93,6 +93,8 @@ public class Vector3
         return Vector3.divide(this, divisor);
     }
 
+    public Vector3 divide(Vector3 v) { return Vector3.divide(this, v); }
+
     public double length()
     {
         return Vector3.length(this);
@@ -117,6 +119,12 @@ public class Vector3
     {
         return Vector3.dot(this, v);
     }
+
+    public Vector3 min(Vector3 v) { return Vector3.min(this, v); }
+
+    public Vector3 max(Vector3 v) { return Vector3.max(this, v); }
+
+    public Vector3 floor() { return Vector3.floor(this); }
 
     //http://www.beosil.com/download/CollisionDetectionHashing_VMV03.pdf
     //http://stackoverflow.com/questions/5928725/hashing-2d-3d-and-nd-vectors
@@ -171,6 +179,11 @@ public class Vector3
         return new Vector3(v.x / divisor, v.y / divisor, v.z / divisor);
     }
 
+    public static Vector3 divide(Vector3 v1, Vector3 v2)
+    {
+        return new Vector3(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z);
+    }
+
     public static double length(Vector3 v)
     {
         return Math.sqrt(Vector3.lengthSquared(v));
@@ -195,6 +208,21 @@ public class Vector3
     public static double dot(Vector3 v1, Vector3 v2)
     {
         return v1.getX() * v2.getX() + v1.getY() * v2.getY() + v1.getZ() * v2.getZ();
+    }
+
+    public static Vector3 min(Vector3 v1, Vector3 v2)
+    {
+        return new Vector3(Math.min(v1.getX(), v2.getX()), Math.min(v1.getY(), v2.getY()), Math.min(v1.getZ(), v2.getZ()));
+    }
+
+    public static Vector3 max(Vector3 v1, Vector3 v2)
+    {
+        return new Vector3(Math.max(v1.getX(), v2.getX()), Math.max(v1.getY(), v2.getY()), Math.max(v1.getZ(), v2.getZ()));
+    }
+
+    public static Vector3 floor(Vector3 v)
+    {
+        return new Vector3(Math.floor(v.getX()), Math.floor(v.getY()), Math.floor(v.getZ()));
     }
 
     public static boolean equiv(Vector3 v1, Vector3 v2)
