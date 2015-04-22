@@ -3,6 +3,7 @@ package com.tw10g12.ASA.Model
 import com.tw10g12.ASA.Debug.Profiler
 import com.tw10g12.ASA.Util
 import com.tw10g12.Maths.Vector3
+import org.json.JSONObject
 
 import scala.collection.mutable
 import scala.util.Random
@@ -10,11 +11,11 @@ import scala.util.Random
 /**
  * Created by Tom on 03/03/2015.
  */
-class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile], startingAdjacencies: Map[Vector3, List[(Int, Double)]], startingRemoveTileProbabilities: (Double, Map[Vector3, Double]), backwardConstant: Double, forwardConstant: Double, removeTick: Boolean) extends SimulationState(startingTiles, tileTypes, startingAdjacencies)
+class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[Tile], startingAdjacencies: Map[Vector3, List[(Int, Double)]], startingRemoveTileProbabilities: (Double, Map[Vector3, Double]), val backwardConstant: Double, val forwardConstant: Double, removeTick: Boolean, stats: SimulationStatistics) extends SimulationState(startingTiles, tileTypes, startingAdjacencies, stats)
 {
     val removeTileProbabilities: (Double, Map[Vector3, Double]) = if(startingRemoveTileProbabilities == null) calculateMaxChances(tiles.foldLeft(Map[Vector3, Double]())((curMap, tilePair) => curMap + calculateRemoveChances(tilePair._1, tiles))) else startingRemoveTileProbabilities
 
-    def this(startingTile: Tile, tileTypes: Vector[Tile], backwardConstant: Double, forwardConstant: Double) = this(Map((startingTile.getPosition -> startingTile)), tileTypes, null, null, backwardConstant, forwardConstant, false)
+    def this(startingTile: Tile, tileTypes: Vector[Tile], backwardConstant: Double, forwardConstant: Double) = this(Map((startingTile.getPosition -> startingTile)), tileTypes, null, null, backwardConstant, forwardConstant, false, new SimulationStatistics())
 
     def calculateMaxChances(chances: Map[Vector3, Double]): (Double, Map[Vector3, Double]) =
     {
@@ -82,7 +83,10 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
         val newRemoveTileProbabilities: Map[Vector3, Double] = removeTileProbabilities._2 ++ newRemoveTiles
         Profiler.profile("Cloned and updated adjacencies")
 
-        return new KTAMSimulationState(newTiles, tileTypes, newAdjacencies, calculateMaxChances(newRemoveTileProbabilities), backwardConstant, forwardConstant, !removeTick)
+        val newStats = stats.clone()
+        updateStats(adjacentTiles.map(pos => getTileAt(pos, tiles)).toList, newTuples.map(pair => pair._2), tiles, newTiles, newStats)
+
+        return new KTAMSimulationState(newTiles, tileTypes, newAdjacencies, calculateMaxChances(newRemoveTileProbabilities), backwardConstant, forwardConstant, !removeTick, newStats)
     }
 
     def nextRemoveState(rnd: Random): KTAMSimulationState =
@@ -90,6 +94,11 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
         Profiler.profile("Begin next state")
         val connected = getConnected(tiles)
         val removeTilePos = (getTileRemovePos(rnd, removeTileProbabilities) ++ tiles.filter(pair => !connected.contains(pair._1)).map(pair => pair._1)).toSet
+        return removeTiles(removeTilePos)
+    }
+
+    def removeTiles(removeTilePos: Set[Vector3]): KTAMSimulationState =
+    {
         val fullRemoveAdjacents: List[(Vector3, Vector[(Tile, Int)])] = removeTilePos.toList.map(pos => (pos, getFullAdjacents(pos, tiles)))
         val removeAdjacentTiles:Map[Vector3, Vector3] = fullRemoveAdjacents.flatMap(pair => pair._2.map(innerPair => innerPair._1.getPosition -> pair._1)).toMap
         Profiler.profile("Got adjacent tiles")
@@ -106,7 +115,10 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
         val newRemoveTileProbabilities: Map[Vector3, Double] = removeTileProbabilities._2 -- removeTilePos ++ newRemoveTiles
         Profiler.profile("Cloned and updated adjacencies"   )
 
-        return new KTAMSimulationState(newTiles, tileTypes, newAdjacencies, calculateMaxChances(newRemoveTileProbabilities), backwardConstant, forwardConstant, !removeTick)
+        val newStats = stats.clone()
+        updateStats((removeTilePos ++ newTuples.map(pair => pair._1)).map(pos => getTileAt(pos, tiles)).toList, newTuples.map(pair => pair._2), tiles, newTiles, newStats)
+
+        return new KTAMSimulationState(newTiles, tileTypes, newAdjacencies, calculateMaxChances(newRemoveTileProbabilities), backwardConstant, forwardConstant, !removeTick, newStats)
     }
 
     def getTileRemovePos(rnd : Random, tileProbabilities: (Double, Map[Vector3, Double])): List[Vector3] =
@@ -134,7 +146,7 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
 
     override def getEmptyAdjacents(tile: Tile, tiles: Map[Vector3, Tile]): List[Vector3] =
     {
-        return (0 until 4).map(orientation => tile.getPosition.add(Util.orientationToVector(orientation))).filter(pos => !tiles.contains(pos)).toList
+        return getAllEmptyAdjacents(tile, tiles)
     }
 
     def getConnected(tiles: Map[Vector3, Tile]): Set[Vector3] =
@@ -160,5 +172,71 @@ class KTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[T
         }
 
         return visited.toSet
+    }
+
+
+    override def setTile(tilePos: Vector3, tile: Tile): SimulationState =
+    {
+        if(tile == null && tiles.contains(tilePos))
+        {
+            return removeTiles(Set(tilePos))
+        }
+        else if(tile != null)
+        {
+            val fullAdjacents: Vector[(Tile, Int)] = getFullAdjacents(tilePos, tiles)
+            val adjacentTiles:Set[Vector3] = fullAdjacents.map(pair => pair._1.getPosition).toSet
+
+            val newTile = tile.clone(tilePos, fullAdjacents.map(pair => pair._2))
+            val newTuples: List[(Vector3, Tile)] = (newTile :: adjacentTiles.toList.map(pos => getTileAt(pos, tiles).clone(newTile.getPosition, true))).map(tile => (tile.getPosition, tile));
+            val newTiles = tiles ++ newTuples
+
+            val redundantAdjacents: List[Vector3] = if(tiles.contains(tilePos))
+            {
+                val emptyAdj: List[Vector3] = (0 until 4).map(orientation => tilePos.add(Util.orientationToVector(orientation))).filter(pos => !tiles.contains(pos)).toList;
+                emptyAdj.filter(adj => isRedundantAdjacency(getFullAdjacents(adj, newTiles)))
+            } else List(tilePos)
+
+            val newAdjacentTiles = getEmptyAdjacents(newTile, tiles).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(_._2.length > 0)
+            val newAdjacencies = (adjacencies - tilePos) -- redundantAdjacents ++ newAdjacentTiles
+
+            val newRemoveTiles: Map[Vector3, Double] = newTiles.map(pair => calculateRemoveChances(pair._1, newTiles)).toMap
+            val newRemoveTileProbabilities: Map[Vector3, Double] = removeTileProbabilities._2 ++ newRemoveTiles
+
+            val newStats = stats.clone()
+            updateStats(adjacentTiles.map(pos => getTileAt(pos, tiles)).toList, newTuples.map(pair => pair._2), tiles, newTiles, newStats)
+
+            return new KTAMSimulationState(newTiles, tileTypes, newAdjacencies, calculateMaxChances(newRemoveTileProbabilities), backwardConstant, forwardConstant, removeTick, newStats)
+        }
+
+        return this
+    }
+
+    override def isRedundantAdjacency(fullAdjacents: Vector[(Tile, Int)]): Boolean =
+    {
+        return fullAdjacents.isEmpty
+    }
+
+    override def getSimulationClassID(): String = "KTAMSimulation"
+
+    override def toJSON(obj: JSONObject): JSONObject =
+    {
+        super.toJSON(obj)
+        //startingRemoveTileProbabilities: (Double, Map[Vector3, Double]), backwardConstant: Double, forwardConstant: Double, removeTick
+        val removeTileObj = new JSONObject()
+        removeTileObj.put("total", removeTileProbabilities._1)
+        removeTileProbabilities._2.map(pair => removeTileObj.append("map", createJSONRemovePair(pair)))
+
+        obj.put("removeTileProbabilities", removeTileObj)
+        obj.put("backwardConstant", backwardConstant)
+        obj.put("forwardConstant", forwardConstant)
+        obj.put("removeTick", removeTick)
+    }
+
+    def createJSONRemovePair(pair: (Vector3, Double)): JSONObject =
+    {
+        val obj = new JSONObject()
+        obj.put("key", Util.IOUtil.vector3ToJSON(pair._1))
+        obj.put("value", pair._2)
+        return obj
     }
 }
