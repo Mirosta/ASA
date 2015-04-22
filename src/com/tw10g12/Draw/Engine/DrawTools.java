@@ -6,7 +6,7 @@ import com.jogamp.graph.font.FontFactory;
 import com.jogamp.graph.font.FontSet;
 import com.jogamp.opengl.math.geom.AABBox;
 import com.tw10g12.Draw.Engine.Exception.DrawToolsStateException;
-import com.tw10g12.Maths.Matrix4;
+import com.tw10g12.Maths.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,9 +18,6 @@ import javax.media.opengl.glu.GLU;
 
 import com.jogamp.opengl.util.gl2.GLUT;
 import com.jogamp.opengl.util.texture.Texture;
-import com.tw10g12.Maths.Vector2;
-import com.tw10g12.Maths.Vector3;
-import com.tw10g12.Maths.Vector4;
 
 @SuppressWarnings(value = { "unused" })
 public class DrawTools
@@ -28,6 +25,7 @@ public class DrawTools
     public static final int NORMAL = 0;
     public static final int NO_LIGHTING = 1;
     public static final int INSTANCED = 2;
+    public static final int ANTIALIASED = 3;
 
     private GL3 gl3;
     private GLU glu;
@@ -164,6 +162,106 @@ public class DrawTools
         Vector3 forward = new Vector3(0,0,-1);
         Vector3 backward = new Vector3(0,0,1);
         drawCuboid(position, size, up, down, left, right, forward, backward, fill);
+    }
+
+    public void drawCuboidOutline(Vector3 position, Vector3 size, Vector3 up, Vector3 down, Vector3 left, Vector3 right, Vector3 forward, Vector3 backward, Colour[] fill)
+    {
+        Vector3 topLeft = position;
+        Vector3 topRight = position.add(right.multiply(size.getX()));
+        Vector3 bottomLeft = position.add(down.multiply(size.getY()));
+        Vector3 bottomRight = position.add(right.multiply(size.getX()).add(down.multiply(size.getY())));
+        Vector3 backTopLeft = position.add(forward.multiply(size.getZ()));
+        Vector3 backTopRight = backTopLeft.add(right.multiply(size.getX()));
+        Vector3 backBottomLeft = backTopLeft.add(down.multiply(size.getY()));
+        Vector3 backBottomRight = backTopLeft.add(right.multiply(size.getX()).add(down.multiply(size.getY())));
+
+        tessellator.setCurrentVBO(lineVBO);
+        int[] vertexIndices = new int[8];
+        vertexIndices[0] = tessellator.addVertex(topLeft, fill[0]);
+        vertexIndices[1] = tessellator.addVertex(topRight, fill[0]);
+        vertexIndices[2] = tessellator.addVertex(backTopRight, fill[0]);
+        vertexIndices[3] = tessellator.addVertex(backTopLeft, fill[0]);
+
+        vertexIndices[4] = tessellator.addVertex(bottomLeft, fill[0]);
+        vertexIndices[5] = tessellator.addVertex(bottomRight, fill[0]);
+        vertexIndices[6] = tessellator.addVertex(backBottomRight, fill[0]);
+        vertexIndices[7] = tessellator.addVertex(backBottomLeft, fill[0]);
+
+        //Top
+        tessellator.addIndex(vertexIndices[0]);
+        tessellator.addIndex(vertexIndices[1]);
+
+        tessellator.addIndex(vertexIndices[1]);
+        tessellator.addIndex(vertexIndices[2]);
+
+        tessellator.addIndex(vertexIndices[2]);
+        tessellator.addIndex(vertexIndices[3]);
+
+        tessellator.addIndex(vertexIndices[3]);
+        tessellator.addIndex(vertexIndices[0]);
+        //Bottom
+        tessellator.addIndex(vertexIndices[4]);
+        tessellator.addIndex(vertexIndices[5]);
+
+        tessellator.addIndex(vertexIndices[5]);
+        tessellator.addIndex(vertexIndices[6]);
+
+        tessellator.addIndex(vertexIndices[6]);
+        tessellator.addIndex(vertexIndices[7]);
+
+        tessellator.addIndex(vertexIndices[7]);
+        tessellator.addIndex(vertexIndices[4]);
+        //Left
+        tessellator.addIndex(vertexIndices[0]);
+        tessellator.addIndex(vertexIndices[4]);
+
+        tessellator.addIndex(vertexIndices[1]);
+        tessellator.addIndex(vertexIndices[5]);
+
+        //Right
+        tessellator.addIndex(vertexIndices[2]);
+        tessellator.addIndex(vertexIndices[6]);
+
+        tessellator.addIndex(vertexIndices[3]);
+        tessellator.addIndex(vertexIndices[7]);
+
+        tessellator.setCurrentVBO(0);
+    }
+
+    public void drawCuboidOutline(Vector3 position, Vector3 size, Colour[] fill)
+    {
+        Vector3 up = new Vector3(0,1,0);
+        Vector3 down = new Vector3(0,-1,0);
+        Vector3 left = new Vector3(-1,0,0);
+        Vector3 right = new Vector3(1,0,0);
+        Vector3 forward = new Vector3(0,0,-1);
+        Vector3 backward = new Vector3(0,0,1);
+        drawCuboidOutline(position, size, up, down, left, right, forward, backward, fill);
+    }
+
+    public void drawPlaneOutline(Colour fill, Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight)
+    {
+        int[] vertexIndices = new int[4];
+        tessellator.setCurrentVBO(lineVBO);
+        vertexIndices[2] = tessellator.addVertex(topLeft, fill);
+        vertexIndices[3] = tessellator.addVertex(topRight, fill);
+        vertexIndices[0] = tessellator.addVertex(bottomLeft, fill);
+        vertexIndices[1] = tessellator.addVertex(bottomRight, fill);
+        tessellator.setNormals(4, 0);
+
+        tessellator.addIndex(vertexIndices[0]);
+        tessellator.addIndex(vertexIndices[1]);
+
+        tessellator.addIndex(vertexIndices[1]);
+        tessellator.addIndex(vertexIndices[3]);
+
+        tessellator.addIndex(vertexIndices[3]);
+        tessellator.addIndex(vertexIndices[2]);
+
+        tessellator.addIndex(vertexIndices[2]);
+        tessellator.addIndex(vertexIndices[0]);
+
+        tessellator.setCurrentVBO(0);
     }
 
     public void drawPlane(Colour fill, Vector3 topLeft, Vector3 topRight, Vector3 bottomLeft, Vector3 bottomRight)
@@ -377,6 +475,7 @@ public class DrawTools
         TextRenderer textRenderer = getTextRenderer();
         if(!textRenderer.isInitialized()) textRenderer.init(getGL3());
         textRenderer.enable(getGL3(), true);
+        textRenderer.setColorStatic(getGL3(), col.getR(), col.getG(), col.getB());
         AABBox stringSize = getFont().getStringBounds(text, 1);
         textRenderer.getMatrix().glMatrixMode(GLMatrixFunc.GL_MODELVIEW);
         textRenderer.getMatrix().glLoadMatrixf(getModelView().flattenMatrixValuesAsFloats(), 0);
@@ -659,17 +758,22 @@ public class DrawTools
         drawQuad(topLeft, topRight, bottomLeft, bottomRight, fill);
     }
 
+    public void drawBezierCurve(BezierCurve curve, int detail, Colour lineColour)
+    {
+        drawBezierCurve(curve.getStart(), curve.getEnd(), curve.getStartControl(), curve.getEndControl(), detail, lineColour);
+    }
+
     public void drawBezierCurve(Vector3 start, Vector3 end, Vector3 startControl, Vector3 endControl, int detail, Colour lineColour)
     {
         tessellator.setCurrentVBO(lineVBO);
-        Vector3 prevPoint = calculateBezierPoint(0.0, start, end, startControl, endControl);
+        Vector3 prevPoint = BezierUtil.calculateBezierPoint(0.0, start, end, startControl, endControl);
         int prevPointIndex = tessellator.addVertex(prevPoint, lineColour);
 
         for(int i = 1; i <= detail; i++)
         {
             float progress = (float)i / (float) detail;
 
-            Vector3 nextPoint = calculateBezierPoint(progress, start, end, startControl, endControl);
+            Vector3 nextPoint = BezierUtil.calculateBezierPoint(progress, start, end, startControl, endControl);
             int nextPointIndex = tessellator.addVertex(nextPoint, lineColour);
 
             tessellator.addIndex(prevPointIndex);
@@ -678,23 +782,6 @@ public class DrawTools
             prevPointIndex = nextPointIndex;
         }
         tessellator.setCurrentVBO(0);
-    }
-
-    //http://devmag.org.za/2011/04/05/bzier-curves-a-tutorial/
-    public Vector3 calculateBezierPoint(double progress, Vector3 start, Vector3 end, Vector3 startControl, Vector3 endControl)
-    {
-        double reverseProgress = 1.0 - progress;
-        double progressSqr = progress*progress;
-        double reverseProgressSqr = reverseProgress*reverseProgress;
-        double reverseProgressCubed = reverseProgressSqr * reverseProgress;
-        double progressCubed = progressSqr * progress;
-
-        Vector3 pos = start.multiply(reverseProgressCubed); //first term
-        pos = pos.add(startControl.multiply(3.0 * reverseProgressSqr * progress)); //second term
-        pos = pos.add(endControl.multiply(3.0 * reverseProgress * progressSqr)); //third term
-        pos = pos.add(end.multiply(progressCubed)); //fourth term
-
-        return pos;
     }
 
     public void drawCircle(Vector3 position, Vector3 up, Vector3 right, double radius, int levelOfDetail, Colour fill)
