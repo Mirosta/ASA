@@ -9,13 +9,13 @@ import com.tw10g12.Maths.Vector3
  */
 object RenderSimulation
 {
-    def render(simulationState: SimulationState, camera: OrbitCamera, drawTools: DrawTools): Unit =
+    def render(simulationState: SimulationState, camera: OrbitCamera, debugShowAdjacencies: Boolean, drawTools: DrawTools): Unit =
     {
         val tileTypes: Map[Int,Map[Int, List[Tile]]] = foldTiles(simulationState, camera)
         drawTools.end()
         tileTypes.map(keyValue => renderTileLevels(keyValue._1, keyValue._2, simulationState, drawTools))
         drawTools.start(false)
-        simulationState.adjacencies.map(pair => renderAdjacency(pair._1, drawTools))
+        if(debugShowAdjacencies) simulationState.adjacencies.map(pair => renderAdjacency(pair._1, drawTools))
     }
 
     def renderAdjacency(pos: Vector3, drawTools: DrawTools): Unit =
