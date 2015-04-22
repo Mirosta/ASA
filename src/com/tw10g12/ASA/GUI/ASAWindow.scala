@@ -5,7 +5,7 @@ import java.awt.event.{WindowEvent, WindowListener}
 import javax.media.opengl.GLCapabilities
 import javax.media.opengl.awt.GLJPanel
 import javax.swing.border.{LineBorder, MatteBorder}
-import javax.swing.{JPanel, SwingConstants}
+import javax.swing.{ScrollPaneConstants, JScrollPane, JPanel, SwingConstants}
 
 import com.tw10g12.ASA.Controller.{HasMenu, MenuController}
 import com.tw10g12.ASA.GUI.DrawPanel.DrawPanelEventHandler
@@ -39,7 +39,7 @@ abstract class ASAWindow(startVisible: Boolean) extends javax.swing.JFrame with 
     {
         println("Starting GUI Setup")
 
-        this.setSize(960,540)
+        this.setSize(1066,600)
         this.setVisible(startVisible)
 
         val mainPanel = new JPanel(new GridBagLayout())
@@ -67,6 +67,7 @@ abstract class ASAWindow(startVisible: Boolean) extends javax.swing.JFrame with 
 
         cardLayout = new CardLayout()
         contentPanel = new JPanel(cardLayout)
+        val scroll = new JScrollPane(contentPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER)
 
         otherMenusPanel = new JPanel(new GridBagLayout())
 
@@ -113,7 +114,7 @@ abstract class ASAWindow(startVisible: Boolean) extends javax.swing.JFrame with 
         val animator = new FPSAnimator(panel, 60)
         animator.start()
 
-        val eventHandler: DrawPanelEventHandler = getDrawPanelEventHandler()
+        val eventHandler: DrawPanelEventHandler = getDrawPanelEventHandler(panel)
 
         panel.addGLEventListener(eventHandler)
         panel.addMouseListener(eventHandler)
@@ -124,6 +125,7 @@ abstract class ASAWindow(startVisible: Boolean) extends javax.swing.JFrame with 
     }
 
     def getDrawPanelEventHandler(): DrawPanelEventHandler
+    def getDrawPanelEventHandler(panel: GLJPanel): DrawPanelEventHandler
 
     override def windowOpened(e: WindowEvent): Unit = {}
 
