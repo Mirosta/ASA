@@ -1,27 +1,230 @@
 package com.tw10g12.ASA.Controller
 
-import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.event.{ActionEvent, ActionListener, KeyEvent, KeyListener}
 import java.io.{File, FileWriter, IOException}
 import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
+import javax.swing._
 import javax.swing.event.{ChangeEvent, ChangeListener, DocumentEvent, DocumentListener}
-import javax.swing.filechooser.FileFilter
-import javax.swing.{DefaultListModel, JColorChooser, JFileChooser, JOptionPane}
 
-import com.tw10g12.ASA.GUI.EditorWindow
+import com.tw10g12.ASA.GUI.DrawPanel.EditorState
+import com.tw10g12.ASA.GUI.DrawPanel.EditorState.EditorState
+import com.tw10g12.ASA.GUI.Interaction.Intersectable
+import com.tw10g12.ASA.GUI.{EditorWindow, ReadOnlyTableModel}
 import com.tw10g12.ASA.Model.ATAM.{ATAMGlue, ATAMTile}
+import com.tw10g12.ASA.Model.StateMachine.{GlueState, StateMachine, StateNode, StateTransition}
 import com.tw10g12.ASA.Model.Tile
-import com.tw10g12.ASA.Util
+import com.tw10g12.ASA.Util.IOUtil.TilesetFileFilter
+import com.tw10g12.ASA.{Launcher, Util}
+import com.tw10g12.Maths.Vector3
 import org.json.JSONObject
+
+import scala.util.Random
 
 /**
  * Created by Tom on 24/02/2015.
  */
 class EditorController
 {
+
     var editorWindow: EditorWindow = null
     var currentGlue: Integer = null
     val ordinals: Array[String] = Array[String]("North", "East", "South", "West")
+    var populating = false
+
+    val glueStateAddListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            if(editorWindow.newGlueStateGlue.getSelectedIndex >= 0 && editorWindow.newGlueStateState.getSelectedIndex >= 0)
+            {
+                val selectedNode = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[StateNode]
+                val filteredGlues = (0 to 3).filter(orientation => selectedNode.getGlueState(orientation) == null)
+                val newGlue = filteredGlues(editorWindow.newGlueStateGlue.getSelectedIndex)
+                val newState = GlueState.values.toVector.sorted.apply(editorWindow.newGlueStateState.getSelectedIndex)
+
+                val updatedNode = selectedNode.addGlueState(newGlue, newState)
+                doUpdateNode(updatedNode)
+                populateNodePanel(updatedNode)
+            }
+        }
+    }
+
+    val glueStatesKeyListener: KeyListener = new KeyListener
+    {
+        override def keyTyped(e: KeyEvent): Unit =
+        {
+        }
+
+        override def keyPressed(e: KeyEvent): Unit = {}
+
+        override def keyReleased(e: KeyEvent): Unit =
+        {
+            if(e.getKeyCode == KeyEvent.VK_DELETE)
+            {
+                if(editorWindow.chosenGlueStates.getSelectedRow >= 0)
+                {
+                    val selectedNode: StateNode = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[StateNode]
+                    val filteredOrientations = (0 to 3).filter(orientation => selectedNode.getGlueState(orientation) != null)
+                    if(filteredOrientations.size <= editorWindow.chosenGlueStates.getSelectedRow) return
+                    val updatedNode = selectedNode.removeGlueState(filteredOrientations(editorWindow.chosenGlueStates.getSelectedRow))
+
+                    doUpdateNode(updatedNode)
+                    populateGlueStateTable(updatedNode)
+                }
+            }
+        }
+    }
+
+    def onStateSetAsStarting(newStartingNode: StateNode) =
+    {
+        val newStateMachine: StateMachine = editorWindow.stateMachines(editorWindow.activeTile).setCurrentNode(newStartingNode)
+        editorWindow.stateMachines = editorWindow.stateMachines + (editorWindow.activeTile -> newStateMachine)
+    }
+
+    def onTransitionAdded(fromNode: StateNode, fromDirection: Vector3, toNode: StateNode, toDirection: Vector3) =
+    {
+        val newTransition = new StateTransition(fromNode, toNode, 0.0, fromDirection, toDirection)
+        val newList: List[StateTransition] = if(fromNode.transitions.contains("")) newTransition :: fromNode.transitions("") else List(newTransition)
+        fromNode.setTransitions(fromNode.transitions + ("" -> newList))
+    }
+
+    def onStateAdded(mousePos: Vector3) =
+    {
+        val newState = new StateNode(Map(), mousePos, "N" + (Launcher.editorWindow.stateMachines(editorWindow.activeTile).stateNodes.size + 1))
+        newState.setTransitions(Map())
+        val newStateMachine: StateMachine = editorWindow.stateMachines(editorWindow.activeTile).addStateNode(newState)
+        editorWindow.stateMachines = editorWindow.stateMachines + (editorWindow.activeTile -> newStateMachine)
+    }
+
+    def onStateRemoved(node: StateNode) =
+    {
+        val newStateMachine = editorWindow.stateMachines(editorWindow.activeTile).removeState(node)
+
+        editorWindow.stateMachines = editorWindow.stateMachines + (editorWindow.activeTile -> newStateMachine)
+    }
+
+    def onTransitionRemoved(transition: (String, StateTransition)) =
+    {
+        transition._2.from.setTransitions(transition._2.from.transitions.map(pair => (pair._1, pair._2.filter(t => t != transition._2))).filter(pair => !pair._2.isEmpty))
+    }
+
+    val stateTransitionProbabilityChangeListener: DocumentListener = new DocumentListener
+    {
+        override def insertUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransition()
+        }
+
+        override def changedUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransition()
+        }
+
+        override def removeUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransition()
+        }
+    }
+
+    val stateNodeNameChangeListener: DocumentListener = new DocumentListener
+    {
+
+        override def insertUpdate(e: DocumentEvent): Unit =
+        {
+            updateNode()
+        }
+
+        override def changedUpdate(e: DocumentEvent): Unit =
+        {
+            updateNode()
+        }
+
+        override def removeUpdate(e: DocumentEvent): Unit =
+        {
+            updateNode()
+        }
+    }
+
+    val stateTransitionOnChangeListener: DocumentListener = new DocumentListener
+    {
+        override def insertUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransitionOn()
+        }
+
+        override def changedUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransitionOn()
+        }
+
+        override def removeUpdate(e: DocumentEvent): Unit =
+        {
+            updateTransitionOn()
+        }
+    }
+
+    val stateMachineDetailDoneListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            editorWindow.stateMachineDetailPanel.setVisible(false)
+            editorWindow.drawPanelEventHandler.selected = null
+        }
+    }
+
+    val setStartListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            if(editorWindow.setStartButton.isSelected) updateEditingState(EditorState.SetStarting)
+            else updateEditingState(EditorState.Default)
+        }
+    }
+
+    val addTransitionListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            if(editorWindow.addTransitionButton.isSelected) updateEditingState(EditorState.AddTransition)
+            else updateEditingState(EditorState.Default)
+        }
+    }
+
+    val addStateListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            if(editorWindow.addStateButton.isSelected) updateEditingState(EditorState.AddState)
+            else updateEditingState(EditorState.Default)
+        }
+    }
+
+    val stateMachineDoneListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            updateEditingState(EditorState.Default)
+            editorWindow.editingStateMachine = false
+            editorWindow.cardLayout.show(editorWindow.contentPanel, editorWindow.CARD_TILE_OPTIONS)
+        }
+    }
+
+    var editStateMachineListener: ActionListener = new ActionListener
+    {
+        override def actionPerformed(e: ActionEvent): Unit =
+        {
+            if(editorWindow.activeTile != null)
+            {
+                editorWindow.editingStateMachine = true
+                editorWindow.cardLayout.show(editorWindow.contentPanel, editorWindow.CARD_STATE_MACHINE_EDITOR)
+                if(!editorWindow.stateMachines.contains(editorWindow.activeTile) || editorWindow.stateMachines(editorWindow.activeTile) == null)
+                {
+                    editorWindow.stateMachines = editorWindow.stateMachines + (editorWindow.activeTile -> new StateMachine(null, Map(), new Random(), List()))
+                }
+            }
+        }
+    }
 
     val editGlueListener: ActionListener = new ActionListener()
     {
@@ -30,6 +233,7 @@ class EditorController
             editGlue()
         }
     }
+
     val resetGlueListener: ActionListener = new ActionListener
     {
         override def actionPerformed(e: ActionEvent): Unit =
@@ -47,7 +251,7 @@ class EditorController
         }
     }
 
-    val doneListener: ActionListener = new ActionListener
+    val glueDoneListener: ActionListener = new ActionListener
     {
         override def actionPerformed(e: ActionEvent): Unit =
         {
@@ -83,18 +287,6 @@ class EditorController
         }
     }
 
-    class TilesetFileFilter extends FileFilter
-    {
-        def getExtension(): String = ".tileset.json"
-
-        override def getDescription: String = "Tilesets (*" + getExtension() + ")"
-
-        override def accept(pathname: File): Boolean =
-        {
-            return pathname.getName.endsWith(getExtension())
-        }
-    }
-
     def saveTileSetButtonListener: ActionListener = new ActionListener
     {
         override def actionPerformed(e: ActionEvent): Unit =
@@ -117,7 +309,8 @@ class EditorController
                 val writer = new FileWriter(outputFile)
                 try
                 {
-                    writer.write(Util.IOUtil.tilesetToJSON(editorWindow.tileset).toString)
+                    val jsonObject = Util.IOUtil.tilesetToJSON(editorWindow.tileset, editorWindow.stateMachines)
+                    writer.write(jsonObject.toString)
                 }
                 catch
                 {
@@ -170,7 +363,8 @@ class EditorController
                 {
                     var serialized = new JSONObject(new String(Files.readAllBytes(Paths.get(inputFile.toURI)), Charset.defaultCharset()))
                     var tileset = Util.IOUtil.JSONtoTileset(serialized)
-                    editorWindow.setTileset(tileset)
+                    editorWindow.setTileset((tileset._1, tileset._2))
+                    editorWindow.stateMachines = tileset._3
                 }
                 catch
                 {
@@ -198,6 +392,7 @@ class EditorController
         override def actionPerformed(e: ActionEvent): Unit =
         {
             editorWindow.owningSimulationWindow.setTileSet(editorWindow.tileset)
+            editorWindow.owningSimulationWindow.setStateMachines(editorWindow.stateMachines)
         }
     }
 
@@ -211,8 +406,19 @@ class EditorController
         if(currentGlue == -1) return
 
         val newGlue = new ATAMGlue(editorWindow.glueLabelText.getText, editorWindow.glueStrengthSlider.getValue)
-        editorWindow.setActiveTile(editorWindow.activeTile.asInstanceOf[ATAMTile].setGlue(newGlue, currentGlue), update)
+        updateTile(editorWindow.activeTile.asInstanceOf[ATAMTile].setGlue(newGlue, currentGlue), update)
         if(update) populateList(editorWindow.activeTile)
+    }
+
+    def updateTile(newTile: Tile): Unit = updateTile(newTile, true)
+
+    def updateTile(newTile: Tile, update: Boolean): Unit =
+    {
+        if(editorWindow.stateMachines.contains(editorWindow.activeTile))
+        {
+            editorWindow.stateMachines = editorWindow.stateMachines - editorWindow.activeTile + (newTile -> editorWindow.stateMachines(editorWindow.activeTile))
+        }
+        editorWindow.setActiveTile(newTile, update)
     }
 
     def chooseColour(): Unit =
@@ -221,7 +427,7 @@ class EditorController
         if(retColor != null)
         {
             editorWindow.tileColourPreview.setBackground(retColor)
-            editorWindow.setActiveTile(editorWindow.activeTile.asInstanceOf[ATAMTile].setColour(Util.convertColor(retColor)))
+            updateTile(editorWindow.activeTile.asInstanceOf[ATAMTile].setColour(Util.convertColor(retColor)))
         }
     }
 
@@ -253,7 +459,7 @@ class EditorController
 
     def populateGluePanel(strength: Int, label: String): Unit =
     {
-        editorWindow.editGlueLbl.setText("Edit " + ordinals(this.currentGlue) + " Glue:")
+        editorWindow.editGlueBorderLbl.setTitle("Edit " + ordinals(this.currentGlue) + " Glue:")
         editorWindow.glueStrengthSlider.setValue(strength)
         editorWindow.glueLabelText.setText(label)
     }
@@ -289,4 +495,116 @@ class EditorController
         editorWindow.glueList.setModel(newModel)
     }
 
+    def updateEditingState(editorState: EditorState): Unit =
+    {
+        if(editorWindow != null && editorWindow.drawPanelEventHandler != null)
+        {
+            editorWindow.drawPanelEventHandler.editingState = editorState
+            editorWindow.addStateButton.setSelected(editorState == EditorState.AddState)
+            editorWindow.addTransitionButton.setSelected(editorState == EditorState.AddTransition)
+            editorWindow.setStartButton.setSelected(editorState == EditorState.SetStarting)
+            editorWindow.drawPanelEventHandler.onEditingStateChanged(editorState)
+        }
+    }
+
+    def onStateMachinePartSelected(selected: Intersectable) =
+    {
+        if(selected == null || selected.getAttachedModelObject == null)
+        {
+            editorWindow.stateMachineDetailPanel.setVisible(false)
+        }
+        else
+        {
+            editorWindow.drawPanelEventHandler.panel.requestFocus()
+            if(selected.getAttachedModelObject.isInstanceOf[StateNode])
+            {
+                editorWindow.stateMachineDetailPanel.setVisible(true)
+                editorWindow.stateMachineDetailCardLayout.show(editorWindow.stateMachineDetailPanel, editorWindow.CARD_DETAIL_NODE_EDIT)
+                populateNodePanel(selected.getAttachedModelObject.asInstanceOf[StateNode])
+            }
+            else if(selected.getAttachedModelObject.isInstanceOf[(String, StateTransition)])
+            {
+                editorWindow.stateMachineDetailPanel.setVisible(true)
+                editorWindow.stateMachineDetailCardLayout.show(editorWindow.stateMachineDetailPanel, editorWindow.CARD_DETAIL_TRANSITION_EDIT)
+                val selectedPair = selected.getAttachedModelObject.asInstanceOf[(String, StateTransition)]
+                populateTransitionPanel(selectedPair._1, selectedPair._2)
+            }
+            else
+            {
+                editorWindow.stateMachineDetailPanel.setVisible(false)
+            }
+        }
+    }
+
+    def populateNodePanel(stateNode: StateNode): Unit =
+    {
+        populating = true
+        editorWindow.nodeNameInput.setText(stateNode.label)
+        populateGlueStateTable(stateNode)
+        populating = false
+    }
+
+    def populateGlueStateTable(stateNode: StateNode): Unit =
+    {
+        val columnNames = Array[AnyRef]("Glue", "Glue State")
+        val newTableModel = new ReadOnlyTableModel(generateGlueStateTable(stateNode).asInstanceOf[Array[Array[AnyRef]]], columnNames)
+        editorWindow.chosenGlueStates.setModel(newTableModel)
+        editorWindow.newGlueStateGlue.setModel(new DefaultComboBoxModel[String]((0 to 3).filter(orientation => stateNode.getGlueState(orientation) == null).map(orientation => Util.orientationToFullHeading(orientation)).toArray))
+    }
+
+    def generateGlueStateTable(stateNode: StateNode): Array[Array[String]] =
+    {
+        val filteredOrientations = (0 to 3).filter(orientation => stateNode.getGlueState(orientation) != null)
+        if(filteredOrientations.isEmpty) return Array(Array("", ""))
+        return filteredOrientations.map(orientation => Array(Util.orientationToFullHeading(orientation), stateNode.getGlueState(orientation).toString)).toArray
+    }
+
+    def populateTransitionPanel(transitionOn: String, stateTransition: StateTransition): Unit =
+    {
+        populating = true
+        editorWindow.transitionOnInput.setText(transitionOn)
+        editorWindow.probabilityInput.setText(stateTransition.probability.toString)
+        populating = false
+    }
+
+    def doUpdateNode(updatedNode: StateNode): Unit =
+    {
+        val oldNode: StateNode = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[StateNode]
+        val oldStateMachine: StateMachine = editorWindow.stateMachines(editorWindow.activeTile)
+        val updatedStateMachine: StateMachine = oldStateMachine.updateStateNode(oldNode, updatedNode)
+        editorWindow.drawPanelEventHandler.selected.setAttachedModelObject(updatedNode)
+
+        editorWindow.stateMachines = editorWindow.stateMachines + (editorWindow.activeTile -> updatedStateMachine)
+    }
+
+    def updateNode(): Unit =
+    {
+        val oldNode: StateNode = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[StateNode]
+        val updatedNode = oldNode.setLabel(editorWindow.nodeNameInput.getText)
+        doUpdateNode(updatedNode)
+    }
+
+    def updateTransitionOn(): Unit =
+    {
+        if(populating) return
+        val transition: (String, StateTransition) = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[(String, StateTransition)]
+        val newTransitionOn = editorWindow.transitionOnInput.getText
+        if(transition._1.equals(newTransitionOn)) return
+        val updatedOldList = transition._2.from.transitions(transition._1).filter(t => t != transition._2)
+        val newTransitionList = transition._2 :: (if(transition._2.from.transitions.contains(transition._1)) transition._2.from.transitions(transition._1).filter(t => transition._2 != t) else List())
+        transition._2.from.setTransitions(transition._2.from.transitions + (transition._1 -> updatedOldList) + (newTransitionOn -> newTransitionList))
+        editorWindow.drawPanelEventHandler.selected.setAttachedModelObject((newTransitionOn, transition._2))
+    }
+
+    def updateTransition(): Unit =
+    {
+        if(populating) return
+        editorWindow.probabilityInput.validate()
+        if(!editorWindow.probabilityInput.getInputVerifier.verify(editorWindow.probabilityInput)) return
+        val oldTransition: (String, StateTransition) = editorWindow.drawPanelEventHandler.selected.getAttachedModelObject.asInstanceOf[(String, StateTransition)]
+        val newTransition: StateTransition = oldTransition._2.setProbability(editorWindow.probabilityInput.getText.toDouble)
+        val newTransitions: Map[String, List[StateTransition]] = oldTransition._2.from.transitions.map(pair => if(pair._1 == oldTransition._1) (pair._1, newTransition :: pair._2.filter(transition => transition != oldTransition._2)) else pair)
+        oldTransition._2.from.setTransitions(newTransitions)
+        editorWindow.drawPanelEventHandler.selected.setAttachedModelObject((oldTransition._1, newTransition))
+    }
 }
