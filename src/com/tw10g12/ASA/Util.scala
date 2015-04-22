@@ -1,11 +1,16 @@
 package com.tw10g12.ASA
 
 import java.awt.{Color, Component, Container, GridBagConstraints, Insets}
+import java.io.File
+import java.util.TimerTask
+import java.util.concurrent.atomic.AtomicLong
 import javax.media.opengl.glu.GLU
 import javax.media.opengl.{GL3, GLProfile}
+import javax.swing.filechooser.FileFilter
 
 import com.jogamp.opengl.util.gl2.GLUT
-import com.tw10g12.ASA.Model.JSON.JSONTileFactory
+import com.tw10g12.ASA.Model.JSON.{JSONStateMachineFactory, JSONTileFactory}
+import com.tw10g12.ASA.Model.StateMachine.StateMachine
 import com.tw10g12.ASA.Model.Tile
 import com.tw10g12.Draw.Engine.{Colour, DrawTools, ShaderLoader}
 import com.tw10g12.Maths.Vector3
@@ -13,6 +18,7 @@ import org.json.{JSONArray, JSONObject}
 
 import scala.actors.threadpool.Executors
 import scala.collection.mutable
+import scala.util.Random
 
 /**
  * Created by Tom on 20/10/2014.
@@ -34,6 +40,18 @@ object Util
 
     }
 
+    def toTimerTask(fun : () => Unit) : TimerTask =
+    {
+        return new TimerTask
+        {
+            override def run(): Unit =
+            {
+                fun()
+            }
+        }
+
+    }
+
     def convertColor(color: Color): Colour =
     {
         val c = new Colour(color.getRed, color.getGreen, color.getBlue, color.getAlpha)
@@ -44,6 +62,34 @@ object Util
     {
         val c = new Color(colour.getR,colour.getG,colour.getB, colour.getA)
         return c
+    }
+
+    def orientationToFullHeading(orientation: Int): String =
+    {
+        orientation match
+        {
+            case 0 => return "North" //North
+            case 1 => return "East" //East
+            case 2 => return "South" //South
+            case 3 => return "West" //West
+            case 4 => return "Up" //Up
+            case 5 => return "Down" //Down
+        }
+        throw new IllegalArgumentException("Unknown orientation " + orientation)
+    }
+
+    def orientationToHeading(orientation: Int): String =
+    {
+        orientation match
+        {
+            case 0 => return "N" //North
+            case 1 => return "E" //East
+            case 2 => return "S" //South
+            case 3 => return "W" //West
+            case 4 => return "U" //Up
+            case 5 => return "D" //Down
+        }
+        throw new IllegalArgumentException("Unknown orientation " + orientation)
     }
 
     def orientationToVector(orientation: Int): Vector3 =
@@ -110,20 +156,55 @@ object Util
 
     object IOUtil
     {
-        def tilesetToJSON(tileset: (Tile, List[Tile])): JSONObject =
+
+        class TilesetFileFilter extends FileFilter
+        {
+            def getExtension(): String = ".tileset.json"
+
+            override def getDescription: String = "Tilesets (*" + getExtension() + ")"
+
+            override def accept(pathname: File): Boolean =
+            {
+                return pathname.getName.endsWith(getExtension())
+            }
+        }
+
+        class SimulationFileFilter extends FileFilter
+        {
+            def getExtension(): String = ".simulation.json"
+
+            override def getDescription: String = "Simulations (*" + getExtension() + ")"
+
+            override def accept(pathname: File): Boolean =
+            {
+                return pathname.getName.endsWith(getExtension())
+            }
+        }
+
+        def tilesetToJSON(tileset: (Tile, List[Tile]), stateMachines: Map[Tile, StateMachine]): JSONObject =
         {
             val outputObj = new JSONObject()
             outputObj.put("seed", tileset._1.toJSON(new JSONObject()))
             outputObj.put("tiles", new JSONArray(tileset._2.map(tile => tile.toJSON(new JSONObject())).toArray))
+
+            val stateMachinesMap = new JSONObject()
+            stateMachines.map(pair =>
+                stateMachinesMap.put(pair._1.typeID.toString, pair._2.toJSON(new JSONObject()))
+            )
+            outputObj.put("stateMachines", stateMachinesMap)
             return outputObj
         }
 
-        def JSONtoTileset(serialized: JSONObject): (Tile, List[Tile]) =
+        def JSONtoTileset(serialized: JSONObject): (Tile, List[Tile], Map[Tile, StateMachine]) =
         {
             val seed: Tile = JSONTileFactory.createTile(serialized.getJSONObject("seed"))
             val tiles: List[Tile] = JSONArrayToArray[JSONObject](serialized.getJSONArray("tiles")).map(serializedTile => JSONTileFactory.createTile(serializedTile)).toList
-
-            return (seed, tiles)
+            val stateMachines: Map[Tile, StateMachine] = if(!serialized.has("stateMachines")) Map() else
+            {
+                val stateMachinesMap = serialized.getJSONObject("stateMachines")
+                stateMachinesMap.keySet().toArray.map(typeID => (if(typeID == "-1") seed else tiles(typeID.asInstanceOf[String].toInt)) -> JSONStateMachineFactory.createStateMachine(stateMachinesMap.getJSONObject(typeID.asInstanceOf[String]))).toMap
+            }
+            return (seed, tiles, stateMachines)
         }
 
         def colourToJSON(colour: Colour): JSONObject =
@@ -178,6 +259,23 @@ object Util
             val outputArr: mutable.MutableList[T] = new mutable.MutableList[T]()
             (0 until array.length()).map(i => outputArr += (if(array.get(i) == null) null.asInstanceOf[T] else array.get(i).asInstanceOf[T]))
             return outputArr
+        }
+
+        def randomToJSON(random: Random): JSONObject =
+        {
+            val innerRNGField = random.getClass.getDeclaredField("self")
+            innerRNGField.setAccessible(true)
+            val innerRNG = innerRNGField.get(random).asInstanceOf[java.util.Random]
+            val seedField = innerRNG.getClass.getDeclaredField("seed")
+            seedField.setAccessible(true)
+            val seed = seedField.get(innerRNG).asInstanceOf[AtomicLong]
+            val obj = new JSONObject()
+            obj.put("seed", seed.doubleValue())
+        }
+
+        def JSONtoRandom(serialized: JSONObject): Random =
+        {
+            return new Random(serialized.getLong("seed"))
         }
     }
 
