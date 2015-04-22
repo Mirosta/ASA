@@ -5,8 +5,16 @@ import com.tw10g12.Maths.{Vector3, Ray3}
 /**
  * Created by Tom on 16/02/2015.
  */
-class AABBIntersectable(start: Vector3, size: Vector3) extends Intersectable
+class AABBIntersectable(val start: Vector3, val size: Vector3, var attachedModelObject: AnyRef) extends Intersectable
 {
+    def this(area: (Vector3, Vector3), attachedModelObject: AnyRef) = this(area._1, area._2, attachedModelObject)
+
+    override def getAttachedModelObject: AnyRef = attachedModelObject
+
+    override def setAttachedModelObject(modelObject: AnyRef): Unit =
+    {
+        attachedModelObject = modelObject
+    }
 
     override def rayIntersects(ray: Ray3): Double =
     {

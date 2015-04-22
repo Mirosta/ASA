@@ -8,4 +8,6 @@ import com.tw10g12.Maths.Ray3
 trait Intersectable
 {
     def rayIntersects(ray: Ray3): Double
+    def getAttachedModelObject: AnyRef
+    def setAttachedModelObject(modelObject: AnyRef): Unit
 }
