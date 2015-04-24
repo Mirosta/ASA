@@ -1,6 +1,6 @@
 package com.tw10g12.Maths
 
-import com.tw10g12.ASA.GUI.Interaction.PlaneIntersectable
+import com.tw10g12.ASA.GUI.Interaction.{CirclePlaneIntersectable, PlaneIntersectable}
 import com.tw10g12.Test.UnitSpec
 
 /**
@@ -33,20 +33,27 @@ extends UnitSpec
         val inParallelPlane: PlaneIntersectable = new PlaneIntersectable(new Vector3(1, 2, 3), new Vector3(-3, 0, 1).normalise(), null)
         val intersectablePlane: PlaneIntersectable = new PlaneIntersectable(new Vector3(5, 0, 4), new Vector3(0, 0, 1), null)
 
-        notInParallelPlane.rayIntersects(ray).isNaN should be true
-        inParallelPlane.rayIntersects(ray) should be 0
-        intersectablePlane.rayIntersects(ray).isNaN should be false
+        notInParallelPlane.rayIntersects(ray).isNaN should be (true)
+        inParallelPlane.rayIntersects(ray) should be (0)
+        intersectablePlane.rayIntersects(ray).isNaN should be (false)
     }
 
-    /*"A Ray3" should "correctly collide with a circular plane" in
+    "A Ray3" should "correctly collide with a circular plane" in
     {
         val ray: Ray3 = new Ray3(new Vector3(0, 0, 0), new Vector3(1,2,3), true)
-        val notInParallelPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(10, 2, 1), new Vector3(-3, 0, 1).normalise(), null)
-        val inParallelPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(1, 2, 3), new Vector3(-3, 0, 1).normalise(), null)
-        val intersectablePlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(5, 0, 4), new Vector3(0, 0, 1), null)
+        val notInParallelPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(10, 2, 1), new Vector3(-3, 0, 1).normalise(), 50,  null)
+        val inParallelPlaneOutRadius: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(1, 2, 3).add(new Vector3(-1,0,-3)), new Vector3(-3, 0, 1).normalise(), 1, null)
+        val inParallelPlaneInRadius: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(1, 2, 3), new Vector3(-3, 0, 1).normalise(),5, null)
+        val intersectableInRadiusPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(5, 2, 3), new Vector3(0, 0, 1), 1, null)
+        val intersectableOutRadiusPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(10, 2, 40), new Vector3(0, 1, 0), 1, null)
 
-        notInParallelPlane.rayIntersects(ray).isNaN should be true
-        inParallelPlane.rayIntersects(ray) should be 0
-        intersectablePlane.rayIntersects(ray).isNaN should be false
-    }*/
+        //(5, 0, 4)
+        //
+
+        notInParallelPlane.rayIntersects(ray).isNaN should be (true)
+        inParallelPlaneOutRadius.rayIntersects(ray).isNaN should be (true)
+        inParallelPlaneInRadius.rayIntersects(ray).isNaN should be (false)
+        intersectableInRadiusPlane.rayIntersects(ray).isNaN should be (false)
+        intersectableOutRadiusPlane.rayIntersects(ray).isNaN should be (true)
+    }
 }
