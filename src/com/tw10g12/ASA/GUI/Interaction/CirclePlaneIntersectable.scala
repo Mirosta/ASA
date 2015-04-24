@@ -5,8 +5,9 @@ import com.tw10g12.Maths.{Vector3, Ray3}
 /**
  * Created by Tom on 07/04/2015.
  */
-class CirclePlaneIntersectable(centre: Vector3, up: Vector3, right: Vector3, radius: Double, attachedModelObject: AnyRef) extends PlaneIntersectable(centre, up.cross(right), attachedModelObject)
+class CirclePlaneIntersectable(centre: Vector3, normal: Vector3, radius: Double, attachedModelObject: AnyRef) extends PlaneIntersectable(centre, normal, attachedModelObject)
 {
+    def this(centre: Vector3, up: Vector3, right: Vector3, radius: Double, attachedModelObject: AnyRef) = this(centre, up.cross(right), radius, attachedModelObject)
 
     override def rayIntersects(ray: Ray3): Double =
     {
