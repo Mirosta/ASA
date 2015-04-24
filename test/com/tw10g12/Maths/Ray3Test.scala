@@ -1,6 +1,6 @@
 package com.tw10g12.Maths
 
-import com.tw10g12.ASA.GUI.Interaction.{CirclePlaneIntersectable, PlaneIntersectable}
+import com.tw10g12.ASA.GUI.Interaction.{AABBIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
 import com.tw10g12.Test.UnitSpec
 
 /**
@@ -44,7 +44,7 @@ extends UnitSpec
         val notInParallelPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(10, 2, 1), new Vector3(-3, 0, 1).normalise(), 50,  null)
         val inParallelPlaneOutRadius: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(1, 2, 3).add(new Vector3(-1,0,-3)), new Vector3(-3, 0, 1).normalise(), 1, null)
         val inParallelPlaneInRadius: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(1, 2, 3), new Vector3(-3, 0, 1).normalise(),5, null)
-        val intersectableInRadiusPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(5, 2, 3), new Vector3(0, 0, 1), 1, null)
+        val intersectableInRadiusPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(5, 2, 3), new Vector3(0, 0, 1), 6, null)
         val intersectableOutRadiusPlane: CirclePlaneIntersectable = new CirclePlaneIntersectable(new Vector3(10, 2, 40), new Vector3(0, 1, 0), 1, null)
 
         //(5, 0, 4)
@@ -55,5 +55,15 @@ extends UnitSpec
         inParallelPlaneInRadius.rayIntersects(ray).isNaN should be (false)
         intersectableInRadiusPlane.rayIntersects(ray).isNaN should be (false)
         intersectableOutRadiusPlane.rayIntersects(ray).isNaN should be (true)
+    }
+
+    "A Ray3" should "correctly collide with an axis aligned box" in
+    {
+        val ray: Ray3 = new Ray3(new Vector3(0, 0, 0), new Vector3(1,2,3), true)
+        val notInBox: AABBIntersectable = new AABBIntersectable(new Vector3(10, -10, 5), new Vector3(1,2,3), null)
+        val inBox: AABBIntersectable = new AABBIntersectable(new Vector3(1, -1, 1), new Vector3(4, 10, 15), null)
+
+        notInBox.rayIntersects(ray).isNaN should be (true)
+        inBox.rayIntersects(ray).isNaN should be (false)
     }
 }
