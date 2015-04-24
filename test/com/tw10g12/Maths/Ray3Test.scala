@@ -1,6 +1,6 @@
 package com.tw10g12.Maths
 
-import com.tw10g12.ASA.GUI.Interaction.{AABBIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
+import com.tw10g12.ASA.GUI.Interaction.{BezierIntersectable, AABBIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
 import com.tw10g12.Test.UnitSpec
 
 /**
@@ -65,5 +65,15 @@ extends UnitSpec
 
         notInBox.rayIntersects(ray).isNaN should be (true)
         inBox.rayIntersects(ray).isNaN should be (false)
+    }
+
+    "A Ray3" should "correctly collide with a bezier curve" in
+    {
+        val ray: Ray3 = new Ray3(new Vector3(0, 0, 0), new Vector3(1, 2, 3), true)
+        val farBezier: BezierIntersectable = new BezierIntersectable(new Vector3(10, 1, -15), new Vector3(15, -1, 12), new Vector3(11, 1, -15), new Vector3(14, -1, 12), 2, 20, null)
+        val nearBezier: BezierIntersectable = new BezierIntersectable(new Vector3(-1, 3, 4), new Vector3(3, 1, 2), new Vector3(0, 3, 4), new Vector3(2, 1, 2), 5, 20, null)
+
+        farBezier.rayIntersects(ray).isNaN should be(true)
+        nearBezier.rayIntersects(ray).isNaN should be(false)
     }
 }
