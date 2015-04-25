@@ -3,7 +3,6 @@ package com.test.tw10g12.Maths
 import com.test.tw10g12.Test.UnitSpec
 import com.tw10g12.ASA.GUI.Interaction.{AABBIntersectable, BezierIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
 import com.tw10g12.Maths.{Ray3, Vector3}
-import com.test.tw10g12.Maths.Maths.matchVector
 /**
  * Created by Tom on 17/02/2015.
  */
