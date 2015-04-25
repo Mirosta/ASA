@@ -30,15 +30,16 @@ class SimulationControllerTest extends UnitSpec
         Thread.sleep(500)
 
         controller.pauseSimulation()
-        val rndField = controller.getSimulationState().getClass.getDeclaredField("rnd")
+        val rndField = controller.simulation.getClass.getDeclaredField("rnd")
         rndField.setAccessible(true)
-        rndField.get(controller.getSimulationState()) should be (originalRnd)
+        rndField.get(controller.simulation) should be (originalRnd)
 
         controller.beginSimulation()
         Thread.sleep(500)
 
-        rndField.setAccessible(true)
-        rndField.get(controller.getSimulationState()) should be (originalRnd)
+        rndField.get(controller.simulation) should be (originalRnd)
+
+        controller.stopSimulation()
     }
 
     "A SimulationController" should "be able to stop and load the queued simulation" in
@@ -57,14 +58,15 @@ class SimulationControllerTest extends UnitSpec
         Thread.sleep(500)
 
         controller.stopSimulation()
-        val rndField = controller.getSimulationState().getClass.getDeclaredField("rnd")
+        val rndField = controller.simulation.getClass.getDeclaredField("rnd")
         rndField.setAccessible(true)
-        rndField.get(controller.getSimulationState()) should be (newRnd)
+        rndField.get(controller.simulation) should be (newRnd)
 
         controller.beginSimulation()
         Thread.sleep(500)
 
-        rndField.setAccessible(true)
-        rndField.get(controller.getSimulationState()) should be (newRnd)
+        rndField.get(controller.simulation) should be (newRnd)
+
+        controller.stopSimulation()
     }
 }
