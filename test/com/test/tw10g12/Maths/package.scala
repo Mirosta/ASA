@@ -11,7 +11,7 @@ package object Maths
 {
     def inTolerance(n: Double, n2: Double, tolerance: Double): Boolean =
     {
-        return n + tolerance <= n2 && n-tolerance >= n2
+        return (n - tolerance <= n2) && (n + tolerance >= n2)
     }
 
      case class MatchVectorMatcher(x: Double, y: Double, z:Double, tolerance: Double) extends Matcher[Vector3] {
