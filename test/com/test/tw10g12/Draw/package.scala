@@ -1,6 +1,5 @@
 package com.test.tw10g12
 
-import com.test.tw10g12.Maths.inTolerance
 import com.test.tw10g12.Test._
 import com.tw10g12.Draw.Engine.Colour
 import org.scalatest.matchers.{MatchResult, Matcher}
@@ -13,10 +12,10 @@ package object Draw
 
         def apply(colour: Colour): MatchResult = {
             val tolerance = 0.000001
-            val resR: Boolean = inTolerance(colour.getR, r, tolerance)
-            val resG = inTolerance(colour.getG, g, tolerance)
-            val resB = inTolerance(colour.getB, b, tolerance)
-            val resA = inTolerance(colour.getA, a, tolerance)
+            val resR: Boolean = Maths.inTolerance(colour.getR, r, tolerance)
+            val resG = Maths.inTolerance(colour.getG, g, tolerance)
+            val resB = Maths.inTolerance(colour.getB, b, tolerance)
+            val resA = Maths.inTolerance(colour.getA, a, tolerance)
 
             val matchResults = List[MatchResult](MatchResult(resR,
                 "Red value " + colour.getR + " should match " + r + " (+- " + tolerance + ")",
@@ -34,7 +33,7 @@ package object Draw
         }
     }
 
-    def matchColour(r: Double, g: Double, b:Double) = matchColour(r, g, b, 1)
-    def matchColour(r: Double, g: Double, b:Double, a: Double) = MatchColourMatcher(r, g, b, a)
-    def matchColour(colour: Colour) = matchColour(colour.getR, colour.getG, colour.getB, colour.getA)
+    def matchColour(r: Double, g: Double, b:Double): MatchColourMatcher = matchColour(r, g, b, 1)
+    def matchColour(r: Double, g: Double, b:Double, a: Double): MatchColourMatcher = MatchColourMatcher(r, g, b, a)
+    def matchColour(colour: Colour): MatchColourMatcher = matchColour(colour.getR, colour.getG, colour.getB, colour.getA)
 }
