@@ -9,12 +9,17 @@ import org.scalatest.matchers.{MatchResult, Matcher}
  */
 package object Maths
 {
+    def inTolerance(n: Double, n2: Double, tolerance: Double): Boolean =
+    {
+        return n + tolerance <= n2 && n-tolerance >= n2
+    }
+
      case class MatchVectorMatcher(x: Double, y: Double, z:Double, tolerance: Double) extends Matcher[Vector3] {
 
          def apply(vec: Vector3): MatchResult = {
-             val resX: Boolean = vec.getX - tolerance <= x && vec.getX + tolerance >= x
-             val resY = vec.getY - tolerance <= y && vec.getY + tolerance >= y
-             val resZ = vec.getZ - tolerance <= z && vec.getZ + tolerance >= z
+             val resX: Boolean = inTolerance(vec.getX, x, tolerance)
+             val resY = inTolerance(vec.getY, y, tolerance)
+             val resZ = inTolerance(vec.getZ, z, tolerance)
 
              val matchResults = List[MatchResult](MatchResult(resX,
                  "X coordinate " + vec.getX + " should match " + x + " (+- " + tolerance + ")",
