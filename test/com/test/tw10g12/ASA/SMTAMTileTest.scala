@@ -2,6 +2,7 @@ package com.test.tw10g12.ASA
 
 import com.test.tw10g12.Test.UnitSpec
 import com.tw10g12.ASA.Model.ATAM.{ATAMGlue, ATAMTile}
+import com.tw10g12.ASA.Model.SMTAM.SMTAMTile
 import com.tw10g12.ASA.Model.SMTAMSimulationState
 import com.tw10g12.Draw.Engine.Colour
 import com.tw10g12.Maths.Vector3
@@ -41,8 +42,8 @@ class SMTAMTileTest extends UnitSpec
 
     "A SMTAM Simulation" should "allow a tile to be removed" in
     {
-        val seedTile = new ATAMTile(Vector(new ATAMGlue("N", 2), new ATAMGlue("E", 2), new ATAMGlue("S", 2), new ATAMGlue("W", 2)), Vector(Colour.Black), new Vector3(0,0,0), -1)
-        val tileTypes = Vector(new ATAMTile(Vector(new ATAMGlue("N", 2), null, new ATAMGlue("N", 2)), Vector(Colour.Red), new Vector3(0,0,0), 0), new ATAMTile(Vector(new ATAMGlue("S", 2)), Vector(Colour.Black), new Vector3(), 1))
+        val seedTile = new SMTAMTile(new ATAMTile(Vector(new ATAMGlue("N", 2), new ATAMGlue("E", 2), new ATAMGlue("S", 2), new ATAMGlue("W", 2)), Vector(Colour.Black), new Vector3(0,0,0), -1))
+        val tileTypes = Vector(new ATAMTile(Vector(new ATAMGlue("N", 2), null, new ATAMGlue("N", 2)), Vector(Colour.Red), new Vector3(0,0,0), 0), new ATAMTile(Vector(new ATAMGlue("S", 2)), Vector(Colour.Black), new Vector3(), 1)).map(tile => new SMTAMTile(tile))
 
         val simulation = new SMTAMSimulationState(seedTile, tileTypes, Map(), true).setTile(new Vector3(0, 1, 0), tileTypes(0)).setTile(new Vector3(0, -1, 0), tileTypes(1))
 
