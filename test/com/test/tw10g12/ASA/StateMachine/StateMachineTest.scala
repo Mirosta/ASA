@@ -42,7 +42,7 @@ class StateMachineTest extends UnitSpec
         val nextState = stateMachine.nextState("S+")
 
         nextState._1.currentNode should be (nodes(2))
-        nextState._2 should contain only (0, 2)
+        nextState._2 should contain (-1)
     }
 
     "A State Machine" should "correctly notify when a glue is activated" in
@@ -54,7 +54,7 @@ class StateMachineTest extends UnitSpec
         val nextState = stateMachine.nextState("S+")
 
         nextState._1.currentNode should be (nodes(2))
-        nextState._2 should contain only (1)
+        nextState._2 should contain (1)
     }
 
     "A State Machine" should "correctly update the current glue state" in
