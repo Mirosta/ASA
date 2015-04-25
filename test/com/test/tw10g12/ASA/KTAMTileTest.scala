@@ -55,16 +55,16 @@ class KTAMTileTest extends UnitSpec
 
         removeTileAbove.tiles.contains(new Vector3(0, 1, 0)) should be (false)
         removeTileAbove.adjacencies should matchAdjacencies(6, Map())
-        removeTileAbove.removeTileProbabilities._2.keySet should contain only (new Vector3(0, -1, 0))
+        removeTileAbove.removeTileProbabilities._2.keySet should contain only (new Vector3(0,0,0), new Vector3(0, -1, 0))
 
         removeTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (false)
         removeTileBelow.adjacencies should matchAdjacencies(6, Map())
-        removeTileBelow.removeTileProbabilities._2.keySet should contain only (new Vector3(0, 1, 0))
+        removeTileBelow.removeTileProbabilities._2.keySet should contain only (new Vector3(0,0,0), new Vector3(0, 1, 0))
 
         removeBoth.tiles.contains(new Vector3(0, 1, 0)) should be (false)
         removeBoth.tiles.contains(new Vector3(0, -1, 0)) should be (false)
         removeBoth.adjacencies should matchAdjacencies(4, Map())
-        removeBoth.removeTileProbabilities._2.isEmpty should be (true)
+        removeBoth.removeTileProbabilities._2.keySet should contain only (new Vector3(0,0,0))
     }
 
     "An KTAM Simulation" should "allow a tile to be updated" in
@@ -80,19 +80,19 @@ class KTAMTileTest extends UnitSpec
 
         terminateTileAbove.tiles.contains(new Vector3(0, 1, 0)) should be (true)
         terminateTileAbove.tiles(new Vector3(0, 1, 0)).typeID should be (3)
-        terminateTileAbove.adjacencies should matchAdjacencies(0, Map())
+        terminateTileAbove.adjacencies should matchAdjacencies(8, Map())
         terminateTileAbove.removeTileProbabilities._2.keySet should contain allOf(new Vector3(0, 1, 0), new Vector3(0, -1, 0))
 
         chainTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (true)
         chainTileBelow.tiles(new Vector3(0, -1, 0)).typeID should be (2)
-        chainTileBelow.adjacencies should matchAdjacencies(2, Map(new Vector3(0,-2,0)->Set(1, 2)))
+        chainTileBelow.adjacencies should matchAdjacencies(8, Map())
         chainTileBelow.removeTileProbabilities._2.keySet should contain allOf(new Vector3(0, 1, 0), new Vector3(0, -1, 0))
 
         updateBoth.tiles.contains(new Vector3(0, 1, 0)) should be (true)
         updateBoth.tiles(new Vector3(0, 1, 0)).typeID should be (3)
         updateBoth.tiles.contains(new Vector3(0, -1, 0)) should be (true)
         updateBoth.tiles(new Vector3(0, -1, 0)).typeID should be (2)
-        updateBoth.adjacencies should matchAdjacencies(1, Map(new Vector3(0,-2,0)->Set(1, 2)))
+        updateBoth.adjacencies should matchAdjacencies(8, Map())
         updateBoth.removeTileProbabilities._2.keySet should contain allOf(new Vector3(0, 1, 0), new Vector3(0, -1, 0))
     }
 }
