@@ -24,13 +24,13 @@ class KTAMTileTest extends UnitSpec
             setTileAbove.tiles.contains(new Vector3(0, 1, 0)) should be (true)
             setTileAbove.tiles(new Vector3(0, 1, 0)).typeID should be (0)
 
-            setTileAbove.adjacencies should matchAdjacencies(2, Map(new Vector3(0,2,0)->Set(0), new Vector3(0,-1,0) -> Set(1)))
+            setTileAbove.adjacencies should matchAdjacencies(6, Map())
             setTileAbove.removeTileProbabilities._2 should contain (new Vector3(0, 1, 0))
 
             setTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (true)
             setTileBelow.tiles(new Vector3(0, -1, 0)).typeID should be (1)
 
-            setTileBelow.adjacencies should matchAdjacencies(1, Map(new Vector3(0,1,0)->Set(0)))
+            setTileBelow.adjacencies should matchAdjacencies(6, Map())
             setTileBelow.removeTileProbabilities._2 should contain (new Vector3(0, -1, 0))
 
             setBoth.tiles.contains(new Vector3(0, 1, 0)) should be (true)
@@ -38,7 +38,7 @@ class KTAMTileTest extends UnitSpec
             setBoth.tiles.contains(new Vector3(0, -1, 0)) should be (true)
             setBoth.tiles(new Vector3(0, -1, 0)).typeID should be (1)
 
-            setBoth.adjacencies should matchAdjacencies(1, Map(new Vector3(0,2,0)->Set(0)))
+            setBoth.adjacencies should matchAdjacencies(8, Map())
             setBoth.removeTileProbabilities._2 should contain allOf (new Vector3(0, -1, 0), new Vector3(0, 1, 0))
         }
 
@@ -54,16 +54,16 @@ class KTAMTileTest extends UnitSpec
             val removeBoth = simulation.setTile(new Vector3(0, 1, 0), null).setTile(new Vector3(0, -1, 0), null).asInstanceOf[KTAMSimulationState]
 
             removeTileAbove.tiles.contains(new Vector3(0, 1, 0)) should be (false)
-            removeTileAbove.adjacencies should matchAdjacencies(1, Map(new Vector3(0,1,0)->Set(0)))
+            removeTileAbove.adjacencies should matchAdjacencies(6, Map())
             removeTileAbove.removeTileProbabilities._2 should contain only (new Vector3(0, -1, 0))
 
             removeTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (false)
-            removeTileBelow.adjacencies should matchAdjacencies(1, Map(new Vector3(0,-1,0)->Set(1)))
+            removeTileBelow.adjacencies should matchAdjacencies(6, Map())
             removeTileBelow.removeTileProbabilities._2 should contain only (new Vector3(0, 1, 0))
 
             removeBoth.tiles.contains(new Vector3(0, 1, 0)) should be (false)
             removeBoth.tiles.contains(new Vector3(0, -1, 0)) should be (false)
-            removeBoth.adjacencies should matchAdjacencies(2, Map(new Vector3(0,1,0)->Set(0), new Vector3(0, -1, 0) -> Set(1)))
+            removeBoth.adjacencies should matchAdjacencies(4, Map())
             removeBoth.removeTileProbabilities._2.isEmpty should be (true)
         }
 
