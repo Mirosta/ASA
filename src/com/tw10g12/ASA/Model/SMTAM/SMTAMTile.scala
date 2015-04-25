@@ -13,7 +13,7 @@ import com.tw10g12.Maths.Vector3
  */
 class SMTAMTile(setupGlues: Vector[Glue], colours: Vector[Colour], position: Vector3, typeID: Int) extends ATAMTile(setupGlues, colours, position, typeID)
 {
-    def this(aTAMTile: ATAMTile) = this(aTAMTile.glues.map(glue => new SMTAMGlue(glue.asInstanceOf[ATAMGlue])), Vector[Colour](aTAMTile.getColour), aTAMTile.getPosition, aTAMTile.typeID)
+    def this(aTAMTile: ATAMTile) = this(aTAMTile.glues.map(glue => if(glue == null) null.asInstanceOf[SMTAMGlue] else new SMTAMGlue(glue.asInstanceOf[ATAMGlue])), Vector[Colour](aTAMTile.getColour), aTAMTile.getPosition, aTAMTile.typeID)
 
     //override def getStrength(otherTiles: Vector[(Tile, Int)]): Int = super.getStrength(otherTiles)
 
