@@ -16,7 +16,7 @@ package object ASA
                 "Adjacencies size " + adjacencies.size + " should match " + size,
                 "Adjacencies size " + adjacencies.size + " matched " + size + ", but it shouldn't have")
 
-            val results = adjacencies.flatMap(pair =>
+            val results = vectorTileTypes.flatMap(pair =>
             {
                 val adjCon = MatchResult(adjacencies.contains(pair._1),
                     "Adjacencies should contain " + pair._1.toString,

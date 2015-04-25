@@ -26,8 +26,9 @@ abstract class Tile(setupGlues: Vector[Glue], colour: Vector[Colour], position: 
     private def procGlues(setupGlues: Vector[Glue]) : Vector[Glue] =
     {
         var orientation = -1
+        def nullGlues: Vector[Glue] = (0 until 4-setupGlues.size).map(index => null).toVector
         def proc(glue: Glue) = if(glue == null) { orientation+= 1; null } else { orientation+= 1; glue.clone(this, orientation) }
-        return setupGlues.map(glue => proc(glue))
+        return (setupGlues ++ nullGlues).map(glue => proc(glue))
     }
 
     def getNorthGlue: Glue = glues(0)
