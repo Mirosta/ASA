@@ -1,6 +1,6 @@
 package com.tw10g12.ASA.GUI.Interaction
 
-import com.tw10g12.Maths.{Vector3, Ray3}
+import com.tw10g12.Maths.{Ray3, Vector3}
 
 /**
  * Created by Tom on 07/04/2015.

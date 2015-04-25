@@ -1,14 +1,16 @@
-package com.tw10g12.Maths
+package com.test.tw10g12.Maths
 
-import com.tw10g12.ASA.GUI.Interaction.{BezierIntersectable, AABBIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
-import com.tw10g12.Test.UnitSpec
-
+import com.test.tw10g12.Test.UnitSpec
+import com.tw10g12.ASA.GUI.Interaction.{AABBIntersectable, BezierIntersectable, CirclePlaneIntersectable, PlaneIntersectable}
+import com.tw10g12.Maths.{Ray3, Vector3}
+import com.test.tw10g12.Maths.Maths.matchVector
 /**
  * Created by Tom on 17/02/2015.
  */
 class Ray3Test
 extends UnitSpec
 {
+
     "A Ray3" should "provide a method to move along the ray" in
     {
         val ray: Ray3 = new Ray3(new Vector3(10,10,10), new Vector3(1,1,1))

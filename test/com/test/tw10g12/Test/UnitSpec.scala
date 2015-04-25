@@ -1,4 +1,4 @@
-package com.tw10g12.Test
+package com.test.tw10g12.Test
 
 import org.scalatest._
 
