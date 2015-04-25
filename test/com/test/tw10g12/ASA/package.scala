@@ -21,18 +21,22 @@ package object ASA
                 val adjCon = MatchResult(adjacencies.contains(pair._1),
                     "Adjacencies should contain " + pair._1.toString,
                     "Adjacencies contained " + pair._1 + " but it shouldn't have")
-                val sameSize = MatchResult(adjacencies(pair._1).size == pair._2.size,
-                    "The adjacencies for " + pair._1.toString + " should be of size " + pair._2.size + " but it was " + adjacencies(pair._1).size,
-                    "The adjacencies for " + pair._1.toString + " shouldn't be of size " + pair._2.size + " but it was")
-
-                val adjChecks = adjacencies(pair._1).map(innerPair =>
+                if(adjacencies.contains(pair._1))
                 {
-                    val containsTileType = pair._2.contains(innerPair._1)
-                    MatchResult(containsTileType,
-                        "The adjacencies for " + pair._1.toString + " shouldn't contain the tile type " + innerPair._1,
-                        "The adjacencies for " + pair._1.toString + " should contain the tile type " + innerPair._1)
-                })
-                List(adjCon, sameSize) ++ adjChecks
+                    val sameSize = MatchResult(adjacencies(pair._1).size == pair._2.size,
+                        "The adjacencies for " + pair._1.toString + " should be of size " + pair._2.size + " but it was " + adjacencies(pair._1).size,
+                        "The adjacencies for " + pair._1.toString + " shouldn't be of size " + pair._2.size + " but it was")
+
+                    val adjChecks = adjacencies(pair._1).map(innerPair =>
+                    {
+                        val containsTileType = pair._2.contains(innerPair._1)
+                        MatchResult(containsTileType,
+                            "The adjacencies for " + pair._1.toString + " shouldn't contain the tile type " + innerPair._1,
+                            "The adjacencies for " + pair._1.toString + " should contain the tile type " + innerPair._1)
+                    })
+                    List(adjCon, sameSize) ++ adjChecks
+                }
+                else List(adjCon)
             }).toList
 
             combineResults(sizeResult :: results)

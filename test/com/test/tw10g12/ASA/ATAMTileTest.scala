@@ -77,7 +77,7 @@ class ATAMTileTest extends UnitSpec
         terminateTileAbove.tiles(new Vector3(0, 1, 0)).typeID should be (3)
         terminateTileAbove.adjacencies should matchAdjacencies(0, Map())
 
-        chainTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (false)
+        chainTileBelow.tiles.contains(new Vector3(0, -1, 0)) should be (true)
         chainTileBelow.tiles(new Vector3(0, -1, 0)).typeID should be (2)
         chainTileBelow.adjacencies should matchAdjacencies(2, Map(new Vector3(0,-2,0)->Set(1, 2)))
 
