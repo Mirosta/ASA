@@ -55,6 +55,7 @@ class StateNode(val actions: Map[Int, GlueState], val position: Vector3, val lab
 
     def getTransitionsForInput(input: String): List[StateTransition] =
     {
+        if(transitions == null) return List[StateTransition]()
         if(!transitions.contains(input)) return List[StateTransition]()
         return transitions(input)
     }
@@ -121,7 +122,7 @@ class StateNode(val actions: Map[Int, GlueState], val position: Vector3, val lab
         actions.map(pair => actionsMapObj.put(pair._1.toString, pair._2.id))
 
         val transitionsMap = new JSONObject()
-        transitions.map(pair => transitionsMap.put(pair._1, new JSONArray(pair._2.map(transition => transition.toJSON(new JSONObject(), stateNodes)).toArray)))
+        if(transitions != null) transitions.map(pair => transitionsMap.put(pair._1, new JSONArray(pair._2.map(transition => transition.toJSON(new JSONObject(), stateNodes)).toArray)))
 
         obj.put("actions", actionsMapObj)
         obj.put("position", Util.IOUtil.vector3ToJSON(position))
