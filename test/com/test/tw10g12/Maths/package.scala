@@ -1,4 +1,4 @@
-package com.test.tw10g12.Maths
+package com.test.tw10g12
 
 import com.tw10g12.Maths.Vector3
 import com.test.tw10g12.Test.combineResults
