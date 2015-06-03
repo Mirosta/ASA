@@ -86,7 +86,7 @@ class StateNode(val actions: Map[Int, GlueState], val position: Vector3, val lab
     def setLabel(newLabel: String): StateNode =
     {
         val newNode = new StateNode(actions, position.multiply(1), newLabel)
-        newNode.setTransitions(transitions.map(pair => (pair._1, pair._2.map(transition => transition.setFrom(newNode)))))
+        if(transitions != null) newNode.setTransitions(transitions.map(pair => (pair._1, pair._2.map(transition => transition.setFrom(newNode)))))
         return newNode
     }
 
@@ -99,14 +99,14 @@ class StateNode(val actions: Map[Int, GlueState], val position: Vector3, val lab
     def removeGlueState(orientation: Int): StateNode =
     {
         val newNode = new StateNode(actions - orientation, position, label)
-        newNode.setTransitions(transitions)
+        if(transitions != null) newNode.setTransitions(transitions.map(pair => (pair._1, pair._2.map(transition => transition.setFrom(newNode)))))
         return newNode
     }
 
     def addGlueState(glue: Int, state: GlueState): StateNode =
     {
         val newNode = new StateNode(actions + (glue -> state), position, label)
-        newNode.setTransitions(transitions)
+        if(transitions != null) newNode.setTransitions(transitions.map(pair => (pair._1, pair._2.map(transition => transition.setFrom(newNode)))))
         return newNode
     }
 

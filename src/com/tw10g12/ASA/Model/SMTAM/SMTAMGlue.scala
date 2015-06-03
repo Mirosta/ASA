@@ -12,18 +12,18 @@ class SMTAMGlue(label: String, strength: Int, orientation: Int, parent: SMTAMTil
 {
     def this(aTAMGlue: ATAMGlue) = this(aTAMGlue.label, aTAMGlue.strength, aTAMGlue.orientation, null, aTAMGlue.isBound)
 
-    def canBind(otherGlue: Glue, glueState: GlueState, otherGlueState: GlueState): Boolean =
+    def canBind(otherGlue: Glue, glueState: GlueState, otherGlueState: GlueState): Int =
     {
         otherGlue match
         {
-            case glue: ATAMGlue =>
-                if(glue.isBound || this.isBound) return false
-                if(!glue.label.equals(this.label)) return false
-                if(glue.strength != this.strength) return false
-                if(glueState != GlueState.Active || otherGlueState != GlueState.Active) return false
-                return true
+            case glue: SMTAMGlue =>
+                //if(glue.isBound || this.isBound) return false
+                if(!glue.label.equals(this.label)) return -1
+                if(glue.strength != this.strength) return -1
+                if(glueState != GlueState.Active || otherGlueState != GlueState.Active) return 0
+                return 1
         }
-        return false
+        return 0
     }
 
     override def clone(newParent: Tile, newOrientation: Int): Glue =

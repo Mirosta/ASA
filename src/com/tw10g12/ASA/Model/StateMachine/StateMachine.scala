@@ -52,9 +52,11 @@ class StateMachine(val currentNode: StateNode, val currentGlueStates: Map[Int, G
     def updateStateNode(oldNode: StateNode, updatedNode: StateNode): StateMachine =
     {
         val newCurrentNode = if(oldNode == currentNode) updatedNode else currentNode.updateTransitions(oldNode, updatedNode)
+        val newGlueStates = if(oldNode == currentNode) updatedNode.actions else currentGlueStates
+
         val removedList = stateNodes.filter(node => node != oldNode && node != currentNode)
         val updatedList = removedList.map(node => node.updateTransitions(oldNode, updatedNode)) ++ Set(newCurrentNode, updatedNode)
-        return new StateMachine(newCurrentNode, currentGlueStates, rnd, updatedList)
+        return new StateMachine(newCurrentNode, newGlueStates, rnd, updatedList)
     }
 
     def removeState(oldNode: StateNode): StateMachine =

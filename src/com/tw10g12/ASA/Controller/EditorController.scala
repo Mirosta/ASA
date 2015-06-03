@@ -591,7 +591,7 @@ class EditorController
         val newTransitionOn = editorWindow.transitionOnInput.getText
         if(transition._1.equals(newTransitionOn)) return
         val updatedOldList = transition._2.from.transitions(transition._1).filter(t => t != transition._2)
-        val newTransitionList = transition._2 :: (if(transition._2.from.transitions.contains(transition._1)) transition._2.from.transitions(transition._1).filter(t => transition._2 != t) else List())
+        val newTransitionList = transition._2 :: (if(transition._2.from.transitions.contains(newTransitionOn)) transition._2.from.transitions(newTransitionOn).filter(t => transition._2 != t) else List())
         transition._2.from.setTransitions(transition._2.from.transitions + (transition._1 -> updatedOldList) + (newTransitionOn -> newTransitionList))
         editorWindow.drawPanelEventHandler.selected.setAttachedModelObject((newTransitionOn, transition._2))
     }

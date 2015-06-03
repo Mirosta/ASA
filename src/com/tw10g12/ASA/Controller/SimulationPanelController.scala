@@ -11,7 +11,9 @@ import javax.swing.event.{ChangeEvent, ChangeListener, DocumentEvent, DocumentLi
 
 import com.tw10g12.ASA.GUI.SimulationPanel
 import com.tw10g12.ASA.Launcher
+import com.tw10g12.ASA.Model.ATAM.ATAMTile
 import com.tw10g12.ASA.Model.JSON.JSONSimulationFactory
+import com.tw10g12.ASA.Model.SMTAM.SMTAMTile
 import com.tw10g12.ASA.Model.StateMachine.StateMachine
 import com.tw10g12.ASA.Model.{KTAMSimulation, SMTAMSimulation, Simulation, Tile}
 import com.tw10g12.ASA.Util.IOUtil.SimulationFileFilter
@@ -346,9 +348,23 @@ class SimulationPanelController(simulation: SimulationController, simulationPane
         return new KTAMSimulation(tileTypes._1, tileTypes._2, reverseConstant, forwardConstant)
     }
 
+    def toSMTAMTile(tile: Tile): SMTAMTile =
+    {
+        if(tile.isInstanceOf[ATAMTile]) return new SMTAMTile(tile.asInstanceOf[ATAMTile])
+        else return tile.asInstanceOf[SMTAMTile]
+    }
+
+    def getTile(typeID: Int, smtamTileTypes: (SMTAMTile, Vector[SMTAMTile])): SMTAMTile =
+    {
+        if(typeID < 0) return smtamTileTypes._1
+        return smtamTileTypes._2(typeID)
+    }
+
     def createSMTAM(tileTypes: (Tile, Vector[Tile])): Simulation =
     {
-        return new SMTAMSimulation(tileTypes._1, tileTypes._2, simulation.getStateMachines(), simulationPanel.checkConnected.isSelected)
+        val smtamTileTypes = (toSMTAMTile(tileTypes._1), tileTypes._2.map(tile => toSMTAMTile(tile)))
+        val stateMachines = simulation.getStateMachines().map(pair => (if(pair._1.isInstanceOf[ATAMTile]) (getTile(pair._1.typeID, smtamTileTypes), pair._2) else pair))
+        return new SMTAMSimulation(smtamTileTypes._1, smtamTileTypes._2, stateMachines, simulationPanel.checkConnected.isSelected)
     }
 
     val KTAMConstantsChanged: DocumentListener = new DocumentListener

@@ -34,8 +34,13 @@ class StateTransition(val from: StateNode, val to:StateNode, val probability: Do
 
     def toJSON(obj: JSONObject, nodes: List[StateNode]): JSONObject =
     {
-        obj.put("from", nodes.indexOf(from))
-        obj.put("to", nodes.indexOf(to))
+        val fromIndex = nodes.indexOf(from)
+        val toIndex = nodes.indexOf(to)
+        if(fromIndex < 0) throw new Exception("Couldn't find From Node")
+        if(toIndex < 0) throw new Exception("Couldn't find To Node")
+
+        obj.put("from", fromIndex)
+        obj.put("to", toIndex)
         obj.put("probability", probability)
         obj.put("fromDirection", Util.IOUtil.vector3ToJSON(fromDirection))
         obj.put("toDirection", Util.IOUtil.vector3ToJSON(toDirection))

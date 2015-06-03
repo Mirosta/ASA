@@ -132,7 +132,7 @@ class SMTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[
         Profiler.profile("Cloned full tile set")
         val sMRemoveUpdates: Set[Vector3] = if(newStateMachineStates._2.contains(-1)) newStateMachineStates._2(-1).flatMap(pos => getEmptyAdjacents(newTiles(pos), newTiles, newStateMachineStates._1)).toSet else Set[Vector3]()
         val sMAddUpdates = if(newStateMachineStates._2.contains(1)) newStateMachineStates._2(1).flatMap(pos => getEmptyAdjacents(newTiles(pos), newTiles, newStateMachineStates._1)).toSet else Set[Vector3]()
-        val newAdjacentTiles = (sMRemoveUpdates ++ sMAddUpdates ++ getEmptyAdjacents(newTile, tiles, newStateMachineStates._1)).map(position => position -> calculateMonteCarloChances(position, newTiles)).filter(_._2.length > 0)
+        val newAdjacentTiles = (sMRemoveUpdates ++ sMAddUpdates ++ getEmptyAdjacents(newTile, newTiles, newStateMachineStates._1)).map(position => position -> calculateMonteCarloChances(position, newTiles, newStateMachineStates._1)).filter(_._2.length > 0)
         val newAdjacencies = (adjacencies - newTile.getPosition) -- newAdjacentTiles.filter(pair => pair._2.isEmpty).map(pair => pair._1) ++ newAdjacentTiles.filter(pair => !pair._2.isEmpty)
         Profiler.profile("Cloned and updated adjacencies")
 
@@ -222,6 +222,9 @@ class SMTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[
         return false
     }
 
+
+    override def calculateMonteCarloChances(position: Vector3, tiles: Map[Vector3, Tile]): List[(Int, Double)] = calculateMonteCarloChances(position, tiles, stateMachineStates)
+
     def calculateMonteCarloChances(position: Vector3, tiles: Map[Vector3, Tile], stateMachineStates: Map[Vector3, StateMachine]): List[(Int, Double)] =
     {
         if(position == null) return List[(Int, Double)]()
@@ -232,13 +235,14 @@ class SMTAMSimulationState(startingTiles: Map[Vector3, Tile], tileTypes: Vector[
 
     def filterTile(tile: Tile, adjacentTiles: Vector[(Tile, Int)], stateMachineStates: Map[Vector3, StateMachine]): Boolean =
     {
-        val adjacentGlueStates = (adjacentTiles.+:((tile, -1))).map(pair => (pair._1.getPosition -> (if(stateMachineStates.contains(pair._1.getPosition)) stateMachineStates(pair._1.getPosition).currentGlueStates else Map[Int, GlueState]()))).toMap
-        return tile.asInstanceOf[SMTAMTile].canBind(adjacentTiles, adjacentGlueStates)
+        val adjacentGlueStates = (adjacentTiles).map(pair => (pair._1.getPosition -> (if(stateMachineStates.contains(pair._1.getPosition)) stateMachineStates(pair._1.getPosition).currentGlueStates else Map[Int, GlueState]()))).toMap
+        val tileGlueStates: Map[Int, GlueState] = if(tileStateMachines.contains(tile)) tileStateMachines(tile).currentGlueStates else Map()
+        return tile.asInstanceOf[SMTAMTile].canBind(adjacentTiles, adjacentGlueStates, tileGlueStates)
     }
 
     def getEmptyAdjacents(tile: Tile, tiles: Map[Vector3, Tile], stateMachineStates: Map[Vector3, StateMachine]): List[Vector3] =
     {
-        val filteredGlues = tile.glues.filter(glue => !(glue == null || glue.isBound) && (!stateMachineStates.contains(tile.getPosition) || !stateMachineStates(tile.getPosition).currentGlueStates.contains(glue.orientation) || stateMachineStates(tile.getPosition).currentGlueStates(glue.orientation) == GlueState.Active))
+        val filteredGlues = tile.glues.filter(glue => !(glue == null) && !tiles.contains(tile.getPosition.add(Util.orientationToVector(glue.orientation))) && (!stateMachineStates.contains(tile.getPosition) || !stateMachineStates(tile.getPosition).currentGlueStates.contains(glue.orientation) || stateMachineStates(tile.getPosition).currentGlueStates(glue.orientation) == GlueState.Active))
         return filteredGlues.map(glue => tile.getPosition.add(Util.orientationToVector(glue.orientation))).toList
     }
 

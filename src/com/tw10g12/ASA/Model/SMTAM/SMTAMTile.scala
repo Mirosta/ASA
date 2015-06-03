@@ -17,7 +17,7 @@ class SMTAMTile(setupGlues: Vector[Glue], colours: Vector[Colour], position: Vec
 
     //override def getStrength(otherTiles: Vector[(Tile, Int)]): Int = super.getStrength(otherTiles)
 
-    def canBind(otherTiles: Vector[(Tile, Int)], glueStates: Map[Vector3, Map[Int, GlueState]]): Boolean =
+    def canBind(otherTiles: Vector[(Tile, Int)], glueStates: Map[Vector3, Map[Int, GlueState]], tileGlueStates: Map[Int, GlueState]): Boolean =
     {
         var validStrength = 0
         for(tileOrientationPair <- otherTiles)
@@ -28,17 +28,19 @@ class SMTAMTile(setupGlues: Vector[Glue], colours: Vector[Colour], position: Vec
                 val orientation = tileOrientationPair._2
                 otherTile match
                 {
-                    case otherTile: ATAMTile =>
+                    case otherTile: SMTAMTile =>
                         val reverseOrientation = Util.oppositeOrientation(orientation)
                         val otherGlue = otherTile.glues(reverseOrientation)
                         val ownGlue = this.glues(orientation)
-                        val ownGlueState = if(glueStates(this.position).contains(orientation)) glueStates(this.position)(orientation) else GlueState.Active
+                        val ownGlueState = if(tileGlueStates.contains(orientation)) tileGlueStates(orientation) else GlueState.Active
                         val otherGlueState = if(glueStates(otherTile.getPosition).contains(reverseOrientation)) glueStates(otherTile.getPosition)(reverseOrientation) else GlueState.Active
 
-                        if (ownGlue == null || otherGlue == null) return false
-                        if (!ownGlue.asInstanceOf[SMTAMGlue].canBind(otherGlue, ownGlueState, otherGlueState)) return false
-                        validStrength += ownGlue.strength
-                    case _ => return false
+                        if (ownGlue != null && otherGlue != null)
+                        {
+                            val bindResult = ownGlue.asInstanceOf[SMTAMGlue].canBind(otherGlue, ownGlueState, otherGlueState);
+                            if(bindResult == -1) return false
+                            else if(bindResult == 1) validStrength += ownGlue.strength
+                        }
                 }
             }
         }

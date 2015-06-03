@@ -28,7 +28,7 @@ object JSONSimulationFactory
 
         val stats = if(serialized.has("stats")) JSONSimulationStatisticsFactory.createSimulationStatistics(serialized.getJSONObject("stats")) else new SimulationStatistics()
 
-        val simulationState = simulationFactories(simulationClassID).createSimulationState(serialized, tiles, tileTypes._2, adjacencies, tileTypes._3, stats)
+        val simulationState = simulationFactories(simulationClassID).createSimulationState(serialized, tiles, (tileTypes._1, tileTypes._2), adjacencies, tileTypes._3, stats)
         val simulation = simulationFactories(simulationClassID).createSimulation(tileTypes._1,tileTypes._2.toVector, Util.IOUtil.JSONtoRandom(serialized.getJSONObject("rnd")), simulationState)
 
         return simulation
@@ -54,13 +54,13 @@ trait JSONSimulationFactory
 {
     def createSimulation(startingTile: Tile, tileTypes: Vector[Tile], rnd: Random, state: SimulationState): Simulation
 
-    def createSimulationState (serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: List[Tile], adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState
+    def createSimulationState (serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: (Tile, List[Tile]), adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState
 }
 class JSONSimulationFactoryImp extends JSONSimulationFactory
 {
-    def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: List[Tile], adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
+    def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: (Tile, List[Tile]), adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
     {
-        return new SimulationState(tiles, tileTypes.toVector, adjacencies, stats)
+        return new SimulationState(tiles, tileTypes._2.toVector, adjacencies, stats)
     }
 
     override def createSimulation(startingTile: Tile, tileTypes: Vector[Tile], rnd: Random, state: SimulationState): Simulation =
@@ -73,7 +73,7 @@ class JSONSimulationFactoryImp extends JSONSimulationFactory
 
 class JSONKTAMSimulationFactory extends JSONSimulationFactory
 {
-    override def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: List[Tile], adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
+    override def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: (Tile, List[Tile]), adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
     {
         val removeTileObj = serialized.getJSONObject("removeTileProbabilities")
         val removeTileArray = Util.IOUtil.JSONArrayToArray[JSONObject](removeTileObj.getJSONArray("map"))
@@ -82,7 +82,7 @@ class JSONKTAMSimulationFactory extends JSONSimulationFactory
         val forwardConstant = serialized.getDouble("forwardConstant")
         val removeTick = serialized.getBoolean("removeTick")
 
-        return new KTAMSimulationState(tiles, tileTypes.toVector, adjacencies, removeTileProbabilities, backwardConstant, forwardConstant, removeTick, stats)
+        return new KTAMSimulationState(tiles, tileTypes._2.toVector, adjacencies, removeTileProbabilities, backwardConstant, forwardConstant, removeTick, stats)
     }
 
     def JSONToRemovePair(serialized: JSONObject): (Vector3, Double) =
@@ -101,14 +101,15 @@ class JSONKTAMSimulationFactory extends JSONSimulationFactory
 
 class JSONSMTAMSimulationFactory extends JSONSimulationFactory
 {
-    override def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: List[Tile], adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
+    override def createSimulationState(serialized: JSONObject, tiles: Map[Vector3, Tile], tileTypes: (Tile, List[Tile]), adjacencies: Map[Vector3, List[(Int, Double)]], tileStateMachines: Map[Tile, StateMachine], stats: SimulationStatistics): SimulationState =
     {
         val stateMachineStateArray = if(serialized.has("stateMachineStates")) Util.IOUtil.JSONArrayToArray[JSONObject](serialized.getJSONArray("stateMachineStates")) else null
         val stateMachineStates: Map[Vector3, StateMachine] = if(stateMachineStateArray == null) Map() else stateMachineStateArray.map(serializedPair => JSONToStatePair(serializedPair)).toMap
         val checkConnected = serialized.getBoolean("checkConnected")
-        val smTileTypes = tileTypes.map(tile => if(tile.isInstanceOf[ATAMTile] && !tile.isInstanceOf[SMTAMTile]) new SMTAMTile(tile.asInstanceOf[ATAMTile]) else tile)
+        val smTileTypes = tileTypes._2.map(tile => if(tile.isInstanceOf[ATAMTile] && !tile.isInstanceOf[SMTAMTile]) new SMTAMTile(tile.asInstanceOf[ATAMTile]) else tile)
         val smTiles = tiles.map(pair => if(pair._2.isInstanceOf[ATAMTile] && !pair._2.isInstanceOf[SMTAMTile]) (pair._1, new SMTAMTile(pair._2.asInstanceOf[ATAMTile])) else pair)
-        return new SMTAMSimulationState(smTiles, smTileTypes.toVector, adjacencies, stateMachineStates, tileStateMachines, checkConnected, stats)
+        val smTileStateMachines = tileStateMachines.map(pair => if(pair._1.isInstanceOf[ATAMTile]) (if(pair._1.typeID < 0) tileTypes._1 else smTileTypes(pair._1.typeID), pair._2) else pair)
+        return new SMTAMSimulationState(smTiles, smTileTypes.toVector, adjacencies, stateMachineStates, smTileStateMachines, checkConnected, stats)
     }
 
     def JSONToStatePair(serialized: JSONObject): (Vector3, StateMachine) =

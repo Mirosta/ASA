@@ -1,6 +1,7 @@
 package com.tw10g12.ASA.Model.JSON
 
 import com.tw10g12.ASA.Model.ATAM.ATAMTile
+import com.tw10g12.ASA.Model.SMTAM.SMTAMTile
 import com.tw10g12.ASA.Model.{Glue, Tile}
 import com.tw10g12.ASA.Util
 import com.tw10g12.Draw.Engine.Colour
@@ -12,7 +13,7 @@ import org.json.JSONObject
  */
 object JSONTileFactory
 {
-    val tileFactories: Map[String, JSONTileFactory] = Map[String, JSONTileFactory]("ATAMTile" -> new JSONATAMTileFactory(), "SMTAMTile" -> new JSONATAMTileFactory(), "KTAMTile" -> new JSONATAMTileFactory())
+    val tileFactories: Map[String, JSONTileFactory] = Map[String, JSONTileFactory]("ATAMTile" -> new JSONATAMTileFactory(), "SMTAMTile" -> new JSONSMTAMTileFactory(), "KTAMTile" -> new JSONATAMTileFactory())
 
     def createTile(serialized: JSONObject): Tile =
     {
@@ -43,5 +44,13 @@ class JSONATAMTileFactory extends JSONTileFactory
     {
         if(serialized == null || !serialized.isInstanceOf[JSONObject]) return null
         return JSONGlueFactory.createGlue(serialized.asInstanceOf[JSONObject])
+    }
+}
+
+class JSONSMTAMTileFactory extends JSONATAMTileFactory
+{
+    override def createTile(serialized: JSONObject,  colours: Vector[Colour], position: Vector3, typeID: Int): Tile =
+    {
+        return new SMTAMTile(super.createTile(serialized, colours, position, typeID).asInstanceOf[ATAMTile])
     }
 }
